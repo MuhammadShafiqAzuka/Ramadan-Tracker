@@ -1,0 +1,32 @@
+name: ramadhan_hero
+description: A new Flutter project.
+publish_to: none
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  #auth firebase
+  firebase_core: ^4.4.0
+  firebase_auth: ^6.1.4
+  cloud_firestore: ^6.1.2
+
+  #state_management
+  flutter_riverpod: ^3.2.1
+
+  #navigator
+  go_router: ^17.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
