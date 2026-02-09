@@ -20,15 +20,21 @@ class UserProfile {
     final planId = (data['planType'] ?? 'solo') as String;
 
     final household = (data['household'] as Map<String, dynamic>?) ?? {};
+    final ownerName = (household['ownerName'] ?? '') as String;
+
     final parents = (household['parents'] as List?)?.cast<String>() ?? <String>[];
-    final children =
-        (household['children'] as List?)?.cast<String>() ?? <String>[];
+    final children = (household['children'] as List?)?.cast<String>() ?? <String>[];
+
+    // If solo uses ownerName, you can map it into parents[0] for compatibility:
+    final normalizedParents = parents.isNotEmpty
+        ? parents
+        : (ownerName.trim().isNotEmpty ? [ownerName.trim()] : <String>[]);
 
     return UserProfile(
       uid: uid,
       email: email,
       planType: PlanTypeX.fromId(planId),
-      parents: parents,
+      parents: normalizedParents,
       children: children,
     );
   }

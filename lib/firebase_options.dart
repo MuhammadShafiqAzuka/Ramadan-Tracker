@@ -60,5 +60,4 @@ class DefaultFirebaseOptions {
     authDomain: 'ramadan-hero.firebaseapp.com',
     storageBucket: 'ramadan-hero.firebasestorage.app',
   );
-
 }

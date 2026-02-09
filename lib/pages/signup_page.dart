@@ -34,7 +34,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
 
     return AuthCard(
       title: 'Sign Up (${widget.planType.title})',
-      subtitle: 'Create a new ${widget.planType.title} account',
+      subtitle: 'Cipta satu ${widget.planType.title} akaun baru',
       child: Form(
         key: _formKey,
         child: Column(
@@ -44,8 +44,8 @@ class _SignupPageState extends ConsumerState<SignupPage> {
               controller: _email,
               decoration: const InputDecoration(labelText: 'Email'),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Email is required';
-                if (!v.contains('@')) return 'Enter a valid email';
+                if (v == null || v.trim().isEmpty) return 'Email diperlukan';
+                if (!v.contains('@')) return 'Masukkan e-mel yang sah';
                 return null;
               },
             ),
@@ -53,10 +53,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
             TextFormField(
               controller: _password,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(labelText: 'Kata Laluan'),
               validator: (v) {
-                if (v == null || v.isEmpty) return 'Password is required';
-                if (v.length < 6) return 'Password must be at least 6 characters';
+                if (v == null || v.isEmpty) return 'Kata Laluan diperlukan';
+                if (v.length < 6) return 'Kata laluan mestilah sekurang-kurangnya 6 aksar';
                 return null;
               },
             ),
@@ -64,10 +64,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
             TextFormField(
               controller: _confirm,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirm Password'),
+              decoration: const InputDecoration(labelText: 'Sahkan Kata Laluan'),
               validator: (v) {
-                if (v == null || v.isEmpty) return 'Confirm password is required';
-                if (v != _password.text) return 'Passwords do not match';
+                if (v == null || v.isEmpty) return 'Sahkan kata laluan diperlukan';
+                if (v != _password.text) return 'Kata laluan tidak sepadan';
                 return null;
               },
             ),
@@ -131,12 +131,12 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 width: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-                  : const Text('Register'),
+                  : const Text('Daftar'),
             ),
             Tw.gap(Tw.s4),
             TextButton(
               onPressed: () => context.go('/login'),
-              child: const Text('Already have an account? Login'),
+              child: const Text('Sudah mempunyai akaun? Log masuk'),
             ),
           ],
         ),

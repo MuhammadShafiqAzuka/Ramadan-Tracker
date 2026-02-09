@@ -23,6 +23,9 @@ dependencies:
   #navigator
   go_router: ^17.1.0
 
+  #Stream Controller
+  rxdart: ^0.28.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

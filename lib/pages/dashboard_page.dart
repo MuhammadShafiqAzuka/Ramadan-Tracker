@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ramadhan_hero/models/plan_type.dart';
 
+import '../providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/auth_service.dart';
 import '../services/user_profile_service.dart';
@@ -74,6 +76,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authAsync = ref.watch(authStateProvider);
+    final user = authAsync.asData?.value;
+    final authLoading = authAsync.isLoading;
+
     final auth = ref.read(authServiceProvider);
     final profiles = ref.read(userProfileServiceProvider);
 
@@ -89,23 +95,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ),
       data: (profile) {
         if (profile == null) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Account Setup'),
-              actions: [
-                TextButton(
-                  onPressed: () async => auth.logout(),
-                  child: const Text('Logout'),
-                ),
-              ],
-            ),
-            body: const Center(
-              child: Text(
-                'Your profile is missing.\n'
-                    'Please sign up again using your purchase link.',
-                textAlign: TextAlign.center,
-              ),
-            ),
+          // 1) auth still settling → wait
+          if (authLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // 2) not logged in → wait for router redirect
+          if (user == null) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // 3) logged in but profile not loaded yet → give it a moment
+          // (prevents the "missing profile until refresh" flash)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            // just a small delay to allow first Firestore snapshot
+          });
+
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -115,6 +126,22 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         final isSolo = planId == 'solo';
         final needParents = _requiresParents(planId);
         final childCount = _childrenCountForPlan(planId);
+
+        final hasHousehold = profile.parents.isNotEmpty &&
+            (planId == 'solo'
+                ? true
+                : (profile.parents.length >= 2 && profile.children.length >= childCount));
+
+        if (hasHousehold) {
+          // redirect after first frame (avoid calling go during build)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.go('/home');
+          });
+
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
         // hydrate fields from saved household (if any)
         _hydrateFromProfile(
@@ -129,7 +156,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             actions: [
               TextButton(
                 onPressed: () async => auth.logout(),
-                child: const Text('Logout'),
+                child: const Text('Log keluar'),
               ),
             ],
           ),
@@ -165,7 +192,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       Tw.gap(Tw.s6),
                       Text(
                         isSolo
-                            ? 'Masuk nama untuk mula.'
+                            ? 'Masuk nama anda untuk mula.'
                             : 'Masuk nama ketua dan pasangan untuk mula.',
                         style: Tw.subtitle.copyWith(
                           color: Theme.of(context).brightness == Brightness.dark
@@ -178,9 +205,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       if (isSolo) ...[
                         TextFormField(
                           controller: _soloName,
-                          decoration: const InputDecoration(labelText: 'Your name'),
+                          decoration: const InputDecoration(labelText: 'Nama'),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Name is required';
+                            if (v == null || v.trim().isEmpty) return 'Nama is required';
                             return null;
                           },
                         ),
@@ -265,14 +292,24 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               }
                             }
 
-                            await profiles.saveHousehold(
-                              uid: profile.uid,
-                              planType: plan,
-                              parents: parents,
-                              children: children,
-                            );
+                            if (isSolo) {
+                              await profiles.saveSetup(
+                                uid: profile.uid,
+                                ownerName: _soloName.text.trim(),
+                              );
+                            } else {
+                              await profiles.saveSetup(
+                                uid: profile.uid,
+                                parents: [_parent1.text.trim(), _parent2.text.trim()],
+                                children: [
+                                  for (var i = 0; i < childCount; i++) _children[i].text.trim(),
+                                ],
+                              );
+                            }
 
-                            setState(() => success = 'Saved successfully ✅');
+                            if (mounted) context.go('/tracker-fasting');
+
+                            setState(() => success = 'Berjaya disimpan ✅');
                           } catch (e) {
                             setState(() => error = e.toString());
                           } finally {
@@ -284,8 +321,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           height: 18,
                           width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                            : const Text('MULA'),
+                        ) : const Text('Mula'),
                       ),
                     ],
                   ),

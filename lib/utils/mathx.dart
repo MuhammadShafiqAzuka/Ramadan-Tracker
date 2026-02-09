@@ -1,0 +1,1 @@
+double safeDiv(int a, int b) => b == 0 ? 0.0 : a / b;

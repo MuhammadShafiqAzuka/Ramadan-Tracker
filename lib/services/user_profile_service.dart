@@ -27,22 +27,35 @@ class UserProfileService {
     }, SetOptions(merge: true));
   }
 
-  Future<void> saveHousehold({
+  // ✅ new method name + better parameters
+  Future<void> saveSetup({
     required String uid,
-    required PlanType planType,
-    required List<String> parents,
-    required List<String> children,
+    String? ownerName, // solo
+    List<String>? parents, // five/nine
+    List<String>? children, // five/nine
   }) async {
-    final normalizedParents = _clean(parents);
-    final normalizedChildren = _clean(children);
+    final normalizedOwner = ownerName?.trim();
+    final normalizedParents = _clean(parents ?? const []);
+    final normalizedChildren = _clean(children ?? const []);
+
+    final household = <String, dynamic>{
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (normalizedOwner != null && normalizedOwner.isNotEmpty) {
+      household['ownerName'] = normalizedOwner;
+    }
+
+    if (normalizedParents.isNotEmpty) {
+      household['parents'] = normalizedParents;
+    }
+
+    if (normalizedChildren.isNotEmpty) {
+      household['children'] = normalizedChildren;
+    }
 
     await _db.collection('users').doc(uid).set({
-      'household': {
-        'planType': planType.id,
-        'parents': normalizedParents,
-        'children': normalizedChildren,
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
+      'household': household,
     }, SetOptions(merge: true));
   }
 

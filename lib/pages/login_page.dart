@@ -26,8 +26,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final auth = ref.read(authServiceProvider);
 
     return AuthCard(
-      title: 'Login',
-      subtitle: 'Sign in to your account',
+      title: 'Log masuk',
+      subtitle: 'Log masuk ke akaun anda',
       child: Form(
         key: _formKey,
         child: Column(
@@ -37,8 +37,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               controller: _email,
               decoration: const InputDecoration(labelText: 'Email'),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Email is required';
-                if (!v.contains('@')) return 'Enter a valid email';
+                if (v == null || v.trim().isEmpty) return 'Email diperlukan';
+                if (!v.contains('@')) return 'Masukkan e-mel yang sah';
                 return null;
               },
             ),
@@ -46,10 +46,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             TextFormField(
               controller: _password,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(labelText: 'Kata Laluan'),
               validator: (v) {
-                if (v == null || v.isEmpty) return 'Password is required';
-                if (v.length < 6) return 'Password must be at least 6 characters';
+                if (v == null || v.isEmpty) return 'Password diperlukan';
+                if (v.length < 6) return 'Kata laluan mestilah sekurang-kurangnya 6 aksara';
                 return null;
               },
             ),
@@ -57,7 +57,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => context.go('/forgot-password'),
-                child: const Text('Forgot password?'),
+                child: const Text('Terlupa kata laluan ?'),
               ),
             ),
             if (error != null) ...[
@@ -97,12 +97,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 width: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-                  : const Text('Login'),
+                  : const Text('Log masuk'),
             ),
             Tw.gap(Tw.s4),
             TextButton(
               onPressed: () => context.go('/signup-solo'),
-              child: const Text('Create an account'),
+              child: const Text('Daftar akaun'),
             ),
           ],
         ),

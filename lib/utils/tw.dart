@@ -8,7 +8,7 @@ class Tw {
   static const slate700 = Color(0xFF334155);
   static const slate900 = Color(0xFF0F172A);
 
-  static const indigo600 = Color(0xFF4F46E5);
+  static const indigo600 = Color(0xFF10B981);
 
   static const red600 = Color(0xFFDC2626);
 
@@ -25,8 +25,10 @@ class Tw {
   static const s2 = 8.0;
   static const s3 = 12.0;
   static const s4 = 16.0;
+  static const s5 = 22.0;
   static const s6 = 24.0;
   static const s8 = 32.0;
+  static const s10 = 42.0;
 
   static EdgeInsets p(double v) => EdgeInsets.all(v);
   static EdgeInsets pxpy(double x, double y) =>

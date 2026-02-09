@@ -2,14 +2,76 @@ import 'package:flutter/material.dart';
 import 'tw.dart';
 
 class AppTheme {
+  // Breeze-like: neutral surfaces + indigo primary
+  static const _seed = Tw.indigo600;
+
   static ThemeData light() {
-    final base = ThemeData.light();
-    return base.copyWith(
+    final scheme = ColorScheme.fromSeed(
+      seedColor: _seed,
+      brightness: Brightness.light,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme,
       scaffoldBackgroundColor: Tw.slate50,
-      colorScheme: base.colorScheme.copyWith(primary: Tw.indigo600),
+      visualDensity: VisualDensity.standard,
+
+      // Typography: keep it crisp (you can wire GoogleFonts later if you want)
+      textTheme: ThemeData.light().textTheme.apply(
+        bodyColor: Tw.slate900,
+        displayColor: Tw.slate900,
+      ),
+
+      appBarTheme: AppBarTheme(
+        backgroundColor: Tw.slate50,
+        foregroundColor: Tw.slate900,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 16,
+          color: Tw.slate900,
+        ),
+      ),
+
+      dividerTheme: const DividerThemeData(
+        color: Tw.slate200,
+        thickness: 1,
+        space: 16,
+      ),
+
+      cardTheme: CardThemeData(
+        color: Tw.white,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: Tw.br(Tw.rMd),
+          side: const BorderSide(color: Tw.slate200),
+        ),
+      ),
+
+      // Nice, modern surfaces in M3
+      dialogTheme: DialogThemeData(
+        backgroundColor: Tw.white,
+        shape: RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
+      ),
+
+      chipTheme: ChipThemeData(
+        backgroundColor: Tw.slate50,
+        selectedColor: scheme.primary.withOpacity(0.12),
+        side: const BorderSide(color: Tw.slate200),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+
+      // Inputs (Breeze style)
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Tw.slate50,
+        fillColor: Tw.white,
+        hintStyle: const TextStyle(color: Tw.slate700),
+        labelStyle: const TextStyle(color: Tw.slate700),
         border: OutlineInputBorder(
           borderRadius: Tw.br(Tw.rMd),
           borderSide: const BorderSide(color: Tw.slate200),
@@ -20,109 +82,215 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: Tw.br(Tw.rMd),
-          borderSide: const BorderSide(color: Tw.indigo600, width: 1.5),
+          borderSide: BorderSide(color: scheme.primary, width: 1.6),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: Tw.br(Tw.rMd),
+          borderSide: const BorderSide(color: Colors.redAccent),
         ),
         contentPadding: Tw.pxpy(Tw.s4, Tw.s3),
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
+
+      // Buttons (Material 3 + Breeze-ish)
+      filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
-          backgroundColor: const WidgetStatePropertyAll(Tw.indigo600),
-          foregroundColor: const WidgetStatePropertyAll(Tw.white),
-          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 14)),
+          backgroundColor: WidgetStatePropertyAll(scheme.primary),
+          foregroundColor: const WidgetStatePropertyAll(Colors.white),
+          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
           ),
           textStyle: const WidgetStatePropertyAll(
-            TextStyle(
-              inherit: false,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+            TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           ),
         ),
       ),
+
+      // Keep ElevatedButton too (in case you still use it)
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStatePropertyAll(scheme.primary),
+          foregroundColor: const WidgetStatePropertyAll(Colors.white),
+          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
+          ),
+          elevation: const WidgetStatePropertyAll(0),
+          textStyle: const WidgetStatePropertyAll(
+            TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ),
+      ),
+
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
-          foregroundColor: WidgetStatePropertyAll(Tw.indigo600),
+          foregroundColor: WidgetStatePropertyAll(scheme.primary),
           textStyle: const WidgetStatePropertyAll(
-            TextStyle(
-              inherit: false,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+            TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           ),
         ),
       ),
-      cardTheme: CardThemeData(
-        color: Tw.white,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
+
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(scheme.primary),
+          side: const WidgetStatePropertyAll(BorderSide(color: Tw.slate200)),
+          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
+          ),
+          textStyle: const WidgetStatePropertyAll(
+            TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ),
+      ),
+
+      // Lists / tiles (web dashboard feels)
+      listTileTheme: const ListTileThemeData(
+        dense: true,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
     );
   }
 
   static ThemeData dark() {
-    final base = ThemeData.dark();
-    return base.copyWith(
+    final scheme = ColorScheme.fromSeed(
+      seedColor: _seed,
+      brightness: Brightness.dark,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme,
       scaffoldBackgroundColor: Tw.darkBg,
-      colorScheme: base.colorScheme.copyWith(primary: Tw.indigo600),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: const Color(0xFF111827),
-        border: OutlineInputBorder(
-          borderRadius: Tw.br(Tw.rMd),
-          borderSide: const BorderSide(color: Tw.darkBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: Tw.br(Tw.rMd),
-          borderSide: const BorderSide(color: Tw.darkBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: Tw.br(Tw.rMd),
-          borderSide: const BorderSide(color: Tw.indigo600, width: 1.5),
-        ),
-        contentPadding: Tw.pxpy(Tw.s4, Tw.s3),
+      visualDensity: VisualDensity.standard,
+
+      textTheme: ThemeData.dark().textTheme.apply(
+        bodyColor: Tw.white,
+        displayColor: Tw.white,
       ),
 
-      // ✅ ADD THESE TWO (same as light)
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ButtonStyle(
-          backgroundColor: const WidgetStatePropertyAll(Tw.indigo600),
-          foregroundColor: const WidgetStatePropertyAll(Tw.white),
-          padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(vertical: 14),
-          ),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
-          ),
-          textStyle: const WidgetStatePropertyAll(
-            TextStyle(
-              inherit: false,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Tw.darkBg,
+        foregroundColor: Tw.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 16,
+          color: Tw.white,
         ),
       ),
-      textButtonTheme: TextButtonThemeData(
-        style: ButtonStyle(
-          foregroundColor: const WidgetStatePropertyAll(Tw.indigo600),
-          textStyle: const WidgetStatePropertyAll(
-            TextStyle(
-              inherit: false,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
+
+      dividerTheme: const DividerThemeData(
+        color: Tw.darkBorder,
+        thickness: 1,
+        space: 16,
       ),
 
       cardTheme: CardThemeData(
         color: Tw.darkCard,
         elevation: 0,
         margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: Tw.br(Tw.rMd),
+          side: const BorderSide(color: Tw.darkBorder),
+        ),
+      ),
+
+      dialogTheme: DialogThemeData(
+        backgroundColor: Tw.darkCard,
         shape: RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
+      ),
+
+      chipTheme: ChipThemeData(
+        backgroundColor: const Color(0xFF111827),
+        selectedColor: scheme.primary.withOpacity(0.18),
+        side: const BorderSide(color: Tw.darkBorder),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF111827),
+        hintStyle: const TextStyle(color: Tw.darkSubtext),
+        labelStyle: const TextStyle(color: Tw.darkSubtext),
+        border: OutlineInputBorder(
+          borderRadius: Tw.br(Tw.rMd),
+          borderSide: const BorderSide(color: Tw.darkBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: Tw.br(Tw.rMd),
+          borderSide: const BorderSide(color: Tw.darkBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: Tw.br(Tw.rMd),
+          borderSide: BorderSide(color: scheme.primary, width: 1.6),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: Tw.br(Tw.rMd),
+          borderSide: const BorderSide(color: Colors.redAccent),
+        ),
+        contentPadding: Tw.pxpy(Tw.s4, Tw.s3),
+      ),
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStatePropertyAll(scheme.primary),
+          foregroundColor: const WidgetStatePropertyAll(Colors.white),
+          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
+          ),
+          textStyle: const WidgetStatePropertyAll(
+            TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ),
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStatePropertyAll(scheme.primary),
+          foregroundColor: const WidgetStatePropertyAll(Colors.white),
+          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
+          ),
+          elevation: const WidgetStatePropertyAll(0),
+          textStyle: const WidgetStatePropertyAll(
+            TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ),
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(scheme.primary),
+          textStyle: const WidgetStatePropertyAll(
+            TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ),
+      ),
+
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(scheme.primary),
+          side: const WidgetStatePropertyAll(BorderSide(color: Tw.darkBorder)),
+          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: Tw.br(Tw.rMd)),
+          ),
+          textStyle: const WidgetStatePropertyAll(
+            TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ),
+      ),
+
+      listTileTheme: const ListTileThemeData(
+        dense: true,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
     );
   }
