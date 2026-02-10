@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_service.dart';
 import '../utils/tw.dart';
@@ -17,6 +18,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final Uri signupUrl = Uri.parse('https://toyyibpay.com/Ramadan-Hero-Family5');
 
   bool loading = false;
   String? error;
@@ -121,11 +123,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
               ),
             ),
-            Tw.gap(Tw.s4),
-            TextButton(
-              onPressed: () => context.go('/signup-solo'),
-              child: const Text('Daftar akaun'),
-            ),
+            // Tw.gap(Tw.s4),
+            // TextButton(
+            //   onPressed: () async {
+            //     if (!await launchUrl(
+            //       signupUrl,
+            //       mode: LaunchMode.externalApplication,
+            //     )) {
+            //       throw 'Could not launch $signupUrl';
+            //     }
+            //   },
+            //   child: const Text('Daftar akaun'),
+            // ),
           ],
         ),
       ),

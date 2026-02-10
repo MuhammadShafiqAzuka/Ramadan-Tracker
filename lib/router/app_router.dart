@@ -23,18 +23,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: GoRouterRefreshStream(auth.authStateChanges()),
     redirect: (context, state) {
       final isLoggedIn = auth.currentUser != null;
+      final path = state.uri.path;
 
-      final loc = state.matchedLocation;
-      final isAuthRoute =
-          loc == '/login' ||
-              loc == '/signup-solo' ||
-              loc == '/signup-five' ||
-              loc == '/signup-nine' ||
-              loc == '/forgot-password';
+      final isAuthRoute = {
+        '/login',
+        '/signup-solo',
+        '/signup-five',
+        '/signup-nine',
+        '/forgot-password',
+      }.contains(path);
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
       if (isLoggedIn && isAuthRoute) return '/dashboard';
-
       return null;
     },
     routes: [
