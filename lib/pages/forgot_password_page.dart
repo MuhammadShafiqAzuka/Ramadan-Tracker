@@ -26,8 +26,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     final auth = ref.read(authServiceProvider);
 
     return AuthCard(
-      title: 'Reset Password',
-      subtitle: 'We’ll email you a reset link',
+      title: 'Tetapkan Semula Kata Laluan',
+      subtitle: 'Kami akan menghantar pautan tetapan semula kepada anda melalui email',
       child: Form(
         key: _formKey,
         child: Column(
@@ -37,7 +37,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               controller: _email,
               decoration: const InputDecoration(labelText: 'Email'),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Email is required';
+                if (v == null || v.trim().isEmpty) return 'Email diperlukan';
                 if (!v.contains('@')) return 'Enter a valid email';
                 return null;
               },
@@ -68,7 +68,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   }
 
                   await auth.sendResetEmail(email: _email.text.trim());
-                  setState(() => success = 'Reset link sent. Check your email.');
+                  setState(() => success = 'Tetapkan semula pautan dihantar. Semak email anda.');
                 } catch (e) {
                   setState(() => error = e.toString());
                 } finally {
@@ -81,13 +81,9 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                 width: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-                  : const Text('Send reset link'),
+                  : const Text('Hantar'),
             ),
             Tw.gap(Tw.s4),
-            TextButton(
-              onPressed: () => context.go('/login-solo'),
-              child: const Text('Back to login'),
-            ),
           ],
         ),
       ),

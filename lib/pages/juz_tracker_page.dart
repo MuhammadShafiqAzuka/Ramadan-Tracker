@@ -167,7 +167,7 @@ class _JuzTrackerPageState extends ConsumerState<JuzTrackerPage> {
                               final checked = isDone(selected, j);
 
                               return BreezeToggleChip(
-                                label: 'J$j',
+                                label: 'Juzuk $j',
                                 checked: checked,
                                 onTap: () async {
                                   final current = isDone(selected, j);

@@ -80,33 +80,45 @@ class _WeightTrackerPageState extends ConsumerState<WeightTrackerPage> {
               _weight.text = '${weightMap[today]}';
             }
 
-            // trend = latest - earliest (selected member)
-            double? earliestW;
-            String? earliestD;
+            // latest vs previous (most recent change)
             double? latestW;
             String? latestD;
+            double? prevW;
+            String? prevD;
 
-            for (final e in weightMap.entries) {
-              final d = e.key;
-              final w = (e.value as num).toDouble();
-              if (earliestD == null || d.compareTo(earliestD) < 0) {
-                earliestD = d;
-                earliestW = w;
-              }
-              if (latestD == null || d.compareTo(latestD) > 0) {
-                latestD = d;
-                latestW = w;
+            if (entries.isNotEmpty) {
+              latestD = entries[0].key;
+              latestW = (entries[0].value as num).toDouble();
+            }
+            if (entries.length >= 2) {
+              prevD = entries[1].key;
+              prevW = (entries[1].value as num).toDouble();
+            }
+
+            final diff = (latestW != null && prevW != null) ? (latestW - prevW) : null;
+
+            IconData? trendIcon;
+            String? trendText;
+
+            if (diff != null) {
+              if (diff > 0) {
+                trendIcon = Icons.trending_up_rounded;
+                trendText = '+${diff.toStringAsFixed(1)} kg';
+              } else if (diff < 0) {
+                trendIcon = Icons.trending_down_rounded;
+                trendText = '${diff.toStringAsFixed(1)} kg'; // already negative
+              } else {
+                trendIcon = Icons.trending_flat_rounded;
+                trendText = '0.0 kg';
               }
             }
 
-            final trend = (earliestW != null && latestW != null) ? (latestW - earliestW) : null;
-
-            // ✅ FIX: trailing widget must be an expression (use ternary)
-            final trendPill = trend == null
+            // Optional: show baseline info in tooltip-ish style? (web)
+            final trendPill = (trendText == null)
                 ? null
                 : BreezePill(
-              text: '${trend >= 0 ? '+' : ''}${trend.toStringAsFixed(1)} kg',
-              icon: Icons.show_chart_rounded,
+              text: trendText,
+              icon: trendIcon,
             );
 
             return BreezeWebScaffold(
@@ -212,7 +224,7 @@ class _WeightTrackerPageState extends ConsumerState<WeightTrackerPage> {
                               leading: const Icon(Icons.calendar_today_rounded, size: 18),
                               title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w800)),
                               trailing: Text(
-                                '${e.value} kg',
+                                '${e.value} Kg',
                                 style: const TextStyle(fontWeight: FontWeight.w900),
                               ),
                             );

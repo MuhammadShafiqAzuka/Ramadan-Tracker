@@ -155,7 +155,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             title: Text('Ramadan Tracker (${plan.title})'),
             actions: [
               TextButton(
-                onPressed: () async => auth.logout(),
+                onPressed: () async => auth. logout(),
                 child: const Text('Log keluar'),
               ),
             ],

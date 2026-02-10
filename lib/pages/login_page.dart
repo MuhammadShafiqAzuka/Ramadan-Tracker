@@ -26,6 +26,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final auth = ref.read(authServiceProvider);
 
     return AuthCard(
+      brand: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.star_rounded, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
+          Text('Ramadan Hero', style: TextStyle(fontWeight: FontWeight.w900)),
+        ],
+      ),
       title: 'Log masuk',
       subtitle: 'Log masuk ke akaun anda',
       child: Form(
@@ -65,39 +73,53 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               Text(error!, style: Tw.error),
             ],
             Tw.gap(Tw.s6),
-            ElevatedButton(
-              onPressed: loading
-                  ? null
-                  : () async {
-                setState(() {
-                  error = null;
-                  loading = true;
-                });
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 120),
+              opacity: loading ? 0.90 : 1.0,
+              child: ElevatedButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                  setState(() {
+                    error = null;
+                    loading = true;
+                  });
 
-                try {
-                  if (!_formKey.currentState!.validate()) {
-                    setState(() => loading = false);
-                    return;
+                  try {
+                    if (!_formKey.currentState!.validate()) {
+                      setState(() => loading = false);
+                      return;
+                    }
+
+                    await auth.login(
+                      email: _email.text.trim(),
+                      password: _password.text,
+                    );
+                  } catch (e) {
+                    setState(() => error = e.toString());
+                  } finally {
+                    if (mounted) setState(() => loading = false);
                   }
-
-                  await auth.login(
-                    email: _email.text.trim(),
-                    password: _password.text,
-                  );
-                  // GoRouter will redirect automatically to /dashboard
-                } catch (e) {
-                  setState(() => error = e.toString());
-                } finally {
-                  setState(() => loading = false);
-                }
-              },
-              child: loading
-                  ? const SizedBox(
-                height: 18,
-                width: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('Log masuk'),
+                },
+                child: SizedBox(
+                  height: 22, // keep consistent vertical rhythm
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (loading) ...[
+                        const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Text(loading ? 'Sedang di process...' : 'Log masuk'),
+                    ],
+                  ),
+                ),
+              ),
             ),
             Tw.gap(Tw.s4),
             TextButton(

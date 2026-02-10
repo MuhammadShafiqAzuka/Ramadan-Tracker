@@ -22,11 +22,11 @@ class Tw {
   static const darkSubtext = Color(0xFF9CA3AF);
 
   // Spacing
-  static const s2 = 8.0;
-  static const s3 = 12.0;
-  static const s4 = 16.0;
-  static const s5 = 22.0;
-  static const s6 = 24.0;
+  static const s2 = 14.0;
+  static const s3 = 17.0;
+  static const s4 = 20.0;
+  static const s5 = 24.0;
+  static const s6 = 28.0;
   static const s8 = 32.0;
   static const s10 = 42.0;
 

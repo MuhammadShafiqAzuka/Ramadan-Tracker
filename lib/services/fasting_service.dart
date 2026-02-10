@@ -42,4 +42,54 @@ class FastingService {
       }
     }, SetOptions(merge: true));
   }
+
+  Future<void> setSolat({
+    required String uid,
+    required int year,
+    required String memberId,
+    required String memberName,
+    required int day,
+    required String prayerKey,
+    required bool value,
+  }) async {
+    await _yearRef(uid, year).set({
+      'year': year,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'members': {
+        memberId: {
+          'name': memberName,
+          'solat': {
+            '$day': {prayerKey: value},
+          },
+        }
+      }
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> setFastingScore({
+    required String uid,
+    required int year,
+    required String memberId,
+    required String memberName,
+    required int day,
+    required double score,
+  }) async {
+    if (day < 1 || day > 30) {
+      throw ArgumentError('day must be between 1 and 30');
+    }
+    if (score != 0.0 && score != 0.5 && score != 1.0) {
+      throw ArgumentError('score must be 0.0, 0.5, or 1.0');
+    }
+
+    await _yearRef(uid, year).set({
+      'year': year,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'members': {
+        memberId: {
+          'name': memberName,
+          'fasting': {'$day': score},
+        }
+      }
+    }, SetOptions(merge: true));
+  }
 }

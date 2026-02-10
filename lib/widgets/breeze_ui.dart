@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import '../utils/leaderboard_rank.dart';
 import '../utils/tw.dart';
 
 class BreezeSectionHeader extends StatelessWidget {
@@ -94,7 +95,7 @@ class BreezePill extends StatelessWidget {
             Icon(icon, size: 14, color: cs.primary),
             const SizedBox(width: 6),
           ],
-          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: cs.primary)),
+          Text(text, style: TextStyle(fontSize: Tw.s2, fontWeight: FontWeight.w800, color: cs.primary)),
         ],
       ),
     );
@@ -125,14 +126,14 @@ class BreezeProgressBlock extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: Tw.s2)),
               const Spacer(),
-              Text(rightText, style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
+              Text(rightText, style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary, fontSize: Tw.s2)),
             ],
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 6),
-            Text(subtitle!, style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+            Text(subtitle!, style: TextStyle(fontSize: Tw.s2, color: Theme.of(context).hintColor)),
           ],
           const SizedBox(height: 10),
           ClipRRect(
@@ -246,6 +247,7 @@ class BreezeToggleChip extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
+                        fontSize: Tw.s2,
                         color: checked ? cs.primary : null,
                       ),
                     ),
@@ -341,11 +343,11 @@ class SectionHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              Text(title, style: const TextStyle(fontSize: Tw.s2, fontWeight: FontWeight.w900)),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                style: TextStyle(fontSize: Tw.s2, color: Theme.of(context).hintColor),
               ),
             ],
           ),
@@ -378,7 +380,7 @@ class Pill extends StatelessWidget {
             Icon(icon, size: 14, color: cs.primary),
             const SizedBox(width: 6),
           ],
-          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: cs.primary)),
+          Text(text, style: TextStyle(fontSize: Tw.s2, fontWeight: FontWeight.w800, color: cs.primary)),
         ],
       ),
     );
@@ -388,27 +390,35 @@ class Pill extends StatelessWidget {
 class BreezeProgressCard extends StatefulWidget {
   final String title;
   final String subtitle;
-  final String footer;
+  final String? footer;
   final String badgeText;
   final IconData icon;
   final VoidCallback onTap;
 
-  /// Optional (0..1). If null, no bar.
+  /// Optional (0..1). If null => no bar (e.g. Surah Today).
   final double? progress;
 
-  /// Optional right pill value (e.g. "62%")
+  /// Optional right-side value (e.g. "62%")
   final String? valueText;
+
+  /// Optional small pill on the right side (e.g. "+0.6 kg")
+  final String? trendText;
+
+  /// Optional trend icon (up/down/remove)
+  final IconData? trendIcon;
 
   const BreezeProgressCard({
     super.key,
     required this.title,
     required this.subtitle,
-    required this.footer,
     required this.badgeText,
     required this.icon,
     required this.onTap,
+    this.footer,
     this.progress,
     this.valueText,
+    this.trendText,
+    this.trendIcon,
   });
 
   @override
@@ -424,29 +434,40 @@ class _BreezeProgressCardState extends State<BreezeProgressCard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final border = isDark ? Tw.darkBorder : Tw.slate200;
+    final bg = isDark ? Tw.darkCard : Tw.white;
     final sub = isDark ? Tw.darkSubtext : Tw.slate700;
 
-    Widget pill(String text, {IconData? icon}) {
+    Widget pill(
+        String text, {
+          IconData? icon,
+          Color? textColor,
+          Color? iconColor,
+          Color? bgColor,
+        }) {
+      final _bg = bgColor ?? cs.primary.withOpacity(isDark ? 0.10 : 0.06);
+      final _tc = textColor ?? cs.primary;
+      final _ic = iconColor ?? cs.primary;
+
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: border),
-          color: cs.primary.withOpacity(isDark ? 0.10 : 0.06),
+          color: _bg,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 14, color: cs.primary),
+              Icon(icon, size: 14, color: _ic),
               const SizedBox(width: 6),
             ],
             Text(
               text,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: Tw.s2,
                 fontWeight: FontWeight.w800,
-                color: cs.primary,
+                color: _tc,
                 height: 1.0,
               ),
             ),
@@ -455,10 +476,12 @@ class _BreezeProgressCardState extends State<BreezeProgressCard> {
       );
     }
 
-    final bg = isDark ? Tw.darkCard : Tw.white;
-
-    // subtle hover lift for web, keep dark minimal
+    // subtle hover lift for web
     final shadow = (!isDark && _hover) ? Tw.shadowMd : const <BoxShadow>[];
+
+    // progress helpers
+    final p = widget.progress?.clamp(0.0, 1.0);
+    final showProgress = p != null;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
@@ -482,84 +505,102 @@ class _BreezeProgressCardState extends State<BreezeProgressCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Header row
+                  // Header
                   Row(
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: 40,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(14),
                           color: cs.primary.withOpacity(isDark ? 0.14 : 0.10),
                           border: Border.all(color: border),
                         ),
-                        child: Icon(widget.icon, color: cs.primary),
+                        child: Icon(widget.icon, color: cs.primary, size: 20),
                       ),
                       const SizedBox(width: 12),
-
                       Expanded(
                         child: Text(
                           widget.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w900),
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: Tw.s2),
                         ),
                       ),
-
                       const SizedBox(width: 10),
                       pill(widget.badgeText),
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
-                  // Subtitle (2-line clamp -> neat grid)
+                  // Subtitle (kept neat)
                   Text(
                     widget.subtitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: Tw.s2,
                       color: sub,
                       height: 1.25,
                     ),
                   ),
 
-                  const SizedBox(height: 12),
-
-                  if (widget.progress != null) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: widget.progress!.clamp(0.0, 1.0),
-                        minHeight: 8,
-                        backgroundColor: (isDark ? Tw.darkBorder : Tw.slate200).withOpacity(0.55),
-                      ),
+                  // Progress row
+                  if (showProgress) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: p,
+                              minHeight: 8,
+                              backgroundColor:
+                              (isDark ? Tw.darkBorder : Tw.slate200).withOpacity(0.55),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        if (widget.valueText != null)
+                          Text(
+                            widget.valueText!,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: cs.primary,
+                              fontSize: Tw.s2
+                            ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 10),
                   ],
 
-                  // Footer row
+                  const SizedBox(height: 12),
+
+                  // Footer row (footer + optional trend pill + chevron)
                   Row(
                     children: [
                       Expanded(
                         child: Text(
-                          widget.footer,
+                          widget.footer ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: Tw.s2,
                             color: sub,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-
-                      if (widget.valueText != null) ...[
+                      if (widget.trendText != null) ...[
                         const SizedBox(width: 10),
-                        pill(widget.valueText!, icon: Icons.trending_up_rounded),
+                        pill(
+                          widget.trendText!,
+                          icon: widget.trendIcon,
+                          // neutral pill, not too loud
+                          bgColor: cs.primary.withOpacity(isDark ? 0.10 : 0.06),
+                        ),
                       ],
-
                       const SizedBox(width: 6),
                       Icon(Icons.chevron_right_rounded, color: Theme.of(context).hintColor),
                     ],
@@ -595,7 +636,7 @@ class BreezeStreaksCard extends StatelessWidget {
               const Spacer(),
               Text(
                 '${streakRows.length} ahli',
-                style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                style: TextStyle(fontSize: Tw.s2, color: Theme.of(context).hintColor),
               ),
             ],
           ),
@@ -619,7 +660,7 @@ class BreezeStreaksCard extends StatelessWidget {
                       width: 28,
                       child: Text(
                         '${i + 1}',
-                        style: TextStyle(fontWeight: FontWeight.w900, color: Theme.of(context).hintColor),
+                        style: TextStyle(fontWeight: FontWeight.w900, color: Theme.of(context).hintColor, fontSize: Tw.s2),
                       ),
                     ),
                     Expanded(
@@ -633,7 +674,7 @@ class BreezeStreaksCard extends StatelessWidget {
                                   r.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w800),
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Tw.s2),
                                 ),
                               ),
                               if (isTop) ...[
@@ -648,7 +689,7 @@ class BreezeStreaksCard extends StatelessWidget {
                                   child: Text(
                                     'Top',
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: Tw.s2,
                                       fontWeight: FontWeight.w900,
                                       color: cs.primary,
                                     ),
@@ -681,7 +722,7 @@ class BreezeStreaksCard extends StatelessWidget {
                       ),
                       child: Text(
                         '${r.streak}',
-                        style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
+                        style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary, fontSize: Tw.s2),
                       ),
                     ),
                   ],
@@ -748,7 +789,7 @@ class BreezeDayChips extends StatelessWidget {
 class BreezeLeaderboardCard extends StatelessWidget {
   final List<({String id, String name, int fasting, int juz, int surah})> leaderboard;
 
-  const BreezeLeaderboardCard({required this.leaderboard});
+  const BreezeLeaderboardCard({super.key, required this.leaderboard});
 
   @override
   Widget build(BuildContext context) {
@@ -869,72 +910,144 @@ class BreezePodiumCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final score = row.fasting + row.juz + row.surah;
 
-    final icon = switch (rank) {
+    final markah = row.fasting + row.juz + row.surah;
+
+    final tier = tierForMarkah(markah);
+    final p = tierProgress(markah);
+
+    final medalIcon = switch (rank) {
       1 => Icons.emoji_events_rounded,
       2 => Icons.workspace_premium_rounded,
       _ => Icons.military_tech_rounded,
     };
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).dividerColor),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            cs.primary.withOpacity(rank == 1 ? 0.14 : 0.09),
-            Theme.of(context).cardColor,
-          ],
+    Widget tierPill({bool compact = false}) {
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: compact ? 4 : 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Theme.of(context).dividerColor),
+          color: cs.primary.withOpacity(0.08),
         ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: cs.primary),
-              const Spacer(),
-              Pill(text: '#$rank'),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // ✅ This area gets squeezed sometimes; make it unbreakable:
-          Expanded(
-            child: Align(
-              alignment: Alignment.bottomLeft,
-              child: ClipRect( // ✅ prevents RenderFlex overflow in extreme constraints
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      row.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Markah $score • P ${row.fasting} • J ${row.juz} • S ${row.surah}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11, // ✅ slightly smaller so it fits more often
-                        color: Theme.of(context).hintColor,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(tier.icon, size: compact ? 12 : 14, color: cs.primary),
+            const SizedBox(width: 6),
+            Text(
+              tier.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: Tw.s2,
+                fontWeight: FontWeight.w900,
+                color: cs.primary,
+                height: 1.0,
               ),
             ),
+          ],
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        // Heuristic: podium cards have very constrained height.
+        // Only show the progress bar if there is enough height.
+        final showProgress = tier.nextAt != null && c.maxHeight >= 220;
+
+        final isTight = c.maxHeight < 300;
+
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Theme.of(context).dividerColor),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                cs.primary.withOpacity(rank == 1 ? 0.14 : 0.09),
+                Theme.of(context).cardColor,
+              ],
+            ),
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header row
+              Row(
+                children: [
+                  Icon(medalIcon, color: cs.primary),
+                  const Spacer(),
+                  Pill(text: '#$rank'),
+                ],
+              ),
+
+              // Tier pill
+              Align(
+                alignment: Alignment.centerLeft,
+                child: tierPill(compact: isTight),
+              ),
+
+
+              // Main content - make it flexible and safe
+              Flexible(
+                child: ClipRect(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        row.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: Tw.s2),
+                      ),
+
+                      // Keep this to 1 line in tight mode to prevent overflow.
+                      Text(
+                        'Markah $markah • Puasa+Solat ${row.fasting} • Juzuk ${row.juz} • Surah ${row.surah}',
+                        maxLines: isTight ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: Tw.s2,
+                          color: Theme.of(context).hintColor,
+                          height: 1.1,
+                        ),
+                      ),
+
+                      if (showProgress) ...[
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: p,
+                            minHeight: 8,
+                            backgroundColor: Theme.of(context).dividerColor.withOpacity(0.35),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${tierRemainText(markah)} untuk naik rank',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: Tw.s2,
+                            color: Theme.of(context).hintColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -942,12 +1055,13 @@ class BreezePodiumCard extends StatelessWidget {
 class BreezeLeaderboardTile extends StatelessWidget {
   final int rank;
   final String name;
-  final int fasting;
+  final int fasting; // ✅ this is Puasa+Solat score portion (0..180-ish depending on your model)
   final int juz;
   final int surah;
-  final int score;
+  final int score;   // ✅ total Markah
 
   const BreezeLeaderboardTile({
+    super.key,
     required this.rank,
     required this.name,
     required this.fasting,
@@ -959,44 +1073,160 @@ class BreezeLeaderboardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final hint = Theme.of(context).hintColor;
+
+    // ✅ use ONE system (same as podium)
+    final tier = tierForMarkah(score);
+    final p = tierProgress(score);
+
+    Widget chip({
+      required String text,
+      IconData? icon,
+      Color? bg,
+      Color? fg,
+    }) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Theme.of(context).dividerColor),
+          color: bg,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 14, color: fg ?? cs.primary),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              text,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: Tw.s2,
+                color: fg ?? cs.primary,
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final rankBg = cs.primary.withOpacity(0.08);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 34,
+          // Left: Rank number
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Theme.of(context).dividerColor),
+              color: cs.primary.withOpacity(0.06),
+            ),
             child: Text(
               '$rank',
-              style: const TextStyle(fontWeight: FontWeight.w900),
+              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
             ),
           ),
+
+          const SizedBox(width: 12),
+
+          // Middle
           Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    chip(
+                      text: tier.label, // ✅ Pelatih/Wira/Hero/Legendary
+                      icon: tier.icon,
+                      bg: rankBg,
+                      fg: cs.primary,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 6),
+
+                // ✅ clarify fasting meaning
+                Text(
+                  'Puasa+Solat $fasting • Juzuk $juz • Surah $surah',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: Tw.s2, color: hint, fontWeight: FontWeight.w600),
+                ),
+
+                const SizedBox(height: 8),
+
+                // ✅ progress to next tier (hide if Legendary)
+                if (tier.nextAt != null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: p,
+                            minHeight: 8,
+                            backgroundColor: Theme.of(context).dividerColor.withOpacity(0.35),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        tierRemainText(score),
+                        style: TextStyle(fontSize: Tw.s2, color: hint, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+              ],
             ),
           ),
-          BreezeTinyStat(label: 'P', value: fasting),
-          BreezeTinyStat(label: 'J', value: juz),
-          BreezeTinyStat(label: 'S', value: surah),
-          const SizedBox(width: 10),
+
+          const SizedBox(width: 12),
+
+          // Right: Markah total
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            width: 92,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Theme.of(context).dividerColor),
               color: cs.primary.withOpacity(0.08),
             ),
-            child: Text(
-              '$score',
-              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'Markah',
+                  style: TextStyle(fontSize: 11, color: hint, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$score',
+                  style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary, fontSize: 18),
+                ),
+              ],
             ),
           ),
         ],

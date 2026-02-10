@@ -14,6 +14,11 @@ import '../widgets/breeze_ui.dart';
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
+  static const _prayers = <String>['subuh', 'zohor', 'asar', 'maghrib', 'isyak'];
+
+  static const double _puasaMaxPerDay = 6.0;     // 5 solat + 1 puasa
+  static const double _puasaMaxPerMember = 180.0; // 30 * 6
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider);
@@ -32,7 +37,7 @@ class HomePage extends ConsumerWidget {
         final name = profile.parents.isNotEmpty ? profile.parents.first : profile.email;
         final year = DateTime.now().year;
 
-        // Members list (same logic you use in pages)
+        // Members list
         final members = <({String id, String name})>[];
         if (profile.planType.id == 'solo') {
           final fallbackName = profile.parents.isNotEmpty ? profile.parents.first : 'Self';
@@ -83,6 +88,9 @@ class HomePage extends ConsumerWidget {
             Map<String, dynamic> fastingMap(String memberId) =>
                 (node(memberId)?['fasting'] as Map<String, dynamic>?) ?? {};
 
+            Map<String, dynamic> solatMap(String memberId) =>
+                (node(memberId)?['solat'] as Map<String, dynamic>?) ?? {};
+
             Map<String, dynamic> juzMap(String memberId) =>
                 (node(memberId)?['juz'] as Map<String, dynamic>?) ?? {};
 
@@ -93,84 +101,102 @@ class HomePage extends ConsumerWidget {
                 (node(memberId)?['weight'] as Map<String, dynamic>?) ?? {};
 
             // ---------------------------
-            // Progress: FASTING (household)
+            // ✅ PUASA SCORE (per member max 180)
+            // day score = solatDone(0..5) + puasaBonus(0/0.5/1)
+            // max per day = 6, max per member = 30*6 = 180
             // ---------------------------
-            int fastingDoneCells = 0;
-            for (final mem in members) {
-              final fm = fastingMap(mem.id);
+            double fastingValue(String memberId, int day) {
+              final fm = fastingMap(memberId);
+              final raw = fm['$day'];
+              if (raw == null) return 0.0;
+              if (raw is bool) return raw ? 1.0 : 0.0; // old data
+              if (raw is int) return raw.toDouble();
+              if (raw is double) return raw;
+              if (raw is num) return raw.toDouble();
+              return 0.0;
+            }
+
+            int solatDoneCount(String memberId, int day) {
+              final sm = solatMap(memberId);
+              final dayMap =
+                  (sm['$day'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
+              int c = 0;
+              for (final k in _prayers) {
+                if (dayMap[k] == true) c++;
+              }
+              return c; // 0..5
+            }
+
+            double memberPuasaScore(String memberId) {
+              double total = 0;
               for (var d = 1; d <= 30; d++) {
-                if (fm['$d'] == true) fastingDoneCells++;
+                final solat = solatDoneCount(memberId, d).toDouble(); // 0..5
+                final puasa = fastingValue(memberId, d);              // 0,0.5,1
+                total += (solat + puasa);                             // 0..6
               }
+              return total; // 0..180
             }
-            final fastingTotalCells = members.length * 30;
-            final fastingPct = safeDiv(fastingDoneCells, fastingTotalCells);
 
             // ---------------------------
-            // Progress: JUZ (household)
+            // ✅ JUZ SCORE (per member max 30)
             // ---------------------------
-            int juzDoneCells = 0;
-            for (final mem in members) {
-              final jm = juzMap(mem.id);
+            int memberJuzScore(String memberId) {
+              final jm = juzMap(memberId);
+              int done = 0;
               for (var j = 1; j <= 30; j++) {
-                if (jm['$j'] == true) juzDoneCells++;
+                if (jm['$j'] == true) done++;
               }
+              return done; // 0..30
             }
-            final juzTotalCells = members.length * 30;
-            final juzPct = safeDiv(juzDoneCells, juzTotalCells);
 
             // ---------------------------
-            // Progress: SURAH today count (household)
+            // ✅ SURAH SCORE (per member max 114)
+            // unique surah read at least once
             // ---------------------------
-            int surahTodayCount = 0;
-            for (final mem in members) {
-              final sm = surahDatesMap(mem.id);
+            int memberSurahScore(String memberId) {
+              final sm = surahDatesMap(memberId);
+              int unique = 0;
               for (var s = 1; s <= 114; s++) {
                 final dates = (sm['$s'] as List?)?.cast<String>() ?? const <String>[];
-                if (dates.contains(today)) surahTodayCount++;
+                if (dates.isNotEmpty) unique++;
               }
+              return unique; // 0..114
             }
 
-            // ---------------------------
-            // Progress: WEIGHT trend (household)
-            // ---------------------------
-            double? earliestWeight;
-            String? earliestDate;
-            double? latestWeight;
-            String? latestDate;
+            // Household dashboard stats
+            double puasaScoreHousehold = 0;
+            int juzDoneHousehold = 0;
+            int surahUniqueHousehold = 0;
 
             for (final mem in members) {
-              final wm = weightMap(mem.id);
-              for (final entry in wm.entries) {
-                final date = entry.key; // YYYY-MM-DD
-                final w = (entry.value as num).toDouble();
-
-                if (earliestDate == null || date.compareTo(earliestDate) < 0) {
-                  earliestDate = date;
-                  earliestWeight = w;
-                }
-                if (latestDate == null || date.compareTo(latestDate) > 0) {
-                  latestDate = date;
-                  latestWeight = w;
-                }
-              }
+              puasaScoreHousehold += memberPuasaScore(mem.id);
+              juzDoneHousehold += memberJuzScore(mem.id);
+              surahUniqueHousehold += memberSurahScore(mem.id);
             }
 
-            final weightTrend = (earliestWeight != null && latestWeight != null)
-                ? (latestWeight - earliestWeight)
-                : null;
+            final puasaMaxHousehold = members.length * _puasaMaxPerMember; // members*180
+            final puasaPct =
+            puasaMaxHousehold == 0 ? 0.0 : (puasaScoreHousehold / puasaMaxHousehold);
+
+            final juzMaxHousehold = members.length * 30;
+            final juzPct = safeDiv(juzDoneHousehold, juzMaxHousehold);
+
+            final surahMaxHousehold = members.length * 114;
+            final surahPct = safeDiv(surahUniqueHousehold, surahMaxHousehold);
 
             // ---------------------------
-            // Streaks: fasting streak per member (day index based)
+            // Streaks: fasting streak per member (treat fastingValue>0)
             // ---------------------------
+            bool isFasted(String memberId, int day) => fastingValue(memberId, day) > 0.0;
+
             int memberStreak(String memberId) {
-              final fm = fastingMap(memberId);
               int last = 0;
               for (var d = 1; d <= 30; d++) {
-                if (fm['$d'] == true) last = d;
+                if (isFasted(memberId, d)) last = d;
               }
               int streak = 0;
               for (var d = last; d >= 1; d--) {
-                if (fm['$d'] == true) {
+                if (isFasted(memberId, d)) {
                   streak++;
                 } else {
                   break;
@@ -180,70 +206,93 @@ class HomePage extends ConsumerWidget {
             }
 
             final streakRows = [
-              for (final mem in members)
-                (id: mem.id, name: mem.name, streak: memberStreak(mem.id)),
+              for (final mem in members) (id: mem.id, name: mem.name, streak: memberStreak(mem.id)),
             ]..sort((a, b) => b.streak.compareTo(a.streak));
 
             final topStreak = streakRows.isNotEmpty ? streakRows.first.streak : 0;
 
-            // ---------------------------
-            // Day-based summary: fasting completed per day
-            // ---------------------------
+            // Day-based summary: fasting completed per day (count >0)
             List<int> fastingPerDayDone = List.filled(30, 0);
             for (var day = 1; day <= 30; day++) {
               int done = 0;
               for (final mem in members) {
-                if (fastingMap(mem.id)['$day'] == true) done++;
+                if (isFasted(mem.id, day)) done++;
               }
               fastingPerDayDone[day - 1] = done;
             }
 
+            // --- Weight dashboard trend (household): latest vs previous entry overall ---
+            double? latestW;
+            String? latestD;
+            double? prevW;
+            String? prevD;
+
+            for (final mem in members) {
+              final wm = weightMap(mem.id);
+              final entries = wm.entries.toList()..sort((a, b) => b.key.compareTo(a.key));
+              if (entries.isEmpty) continue;
+
+              final d0 = entries[0].key;
+              final w0 = (entries[0].value as num).toDouble();
+
+              if (latestD == null || d0.compareTo(latestD) > 0) {
+                if (latestD != null) {
+                  prevD = latestD;
+                  prevW = latestW;
+                }
+                latestD = d0;
+                latestW = w0;
+
+                if (entries.length >= 2) {
+                  prevD ??= entries[1].key;
+                  prevW ??= (entries[1].value as num).toDouble();
+                }
+              } else {
+                if (prevD == null || d0.compareTo(prevD) > 0) {
+                  if (latestD == null || d0 != latestD) {
+                    prevD = d0;
+                    prevW = w0;
+                  }
+                }
+              }
+            }
+
+            final weightDiff = (latestW != null && prevW != null) ? (latestW - prevW) : null;
+
+            IconData? weightTrendIcon;
+            String? weightTrendText;
+
+            if (weightDiff != null) {
+              if (weightDiff > 0) {
+                weightTrendIcon = Icons.trending_up_rounded;
+                weightTrendText = '+${weightDiff.toStringAsFixed(1)} kg';
+              } else if (weightDiff < 0) {
+                weightTrendIcon = Icons.trending_down_rounded;
+                weightTrendText = '${weightDiff.toStringAsFixed(1)} kg';
+              } else {
+                weightTrendIcon = Icons.trending_flat_rounded;
+                weightTrendText = '0.0 kg';
+              }
+            }
+
             // ---------------------------
-            // Leaderboard: combined score (fasting + juz + unique surah)
+            // ✅ LEADERBOARD: PuasaScore(0..180) + Juz(0..30) + Surah(0..114)
+            // total max = 324 per member
             // ---------------------------
-            int fastingCount(String memberId) {
-              final fm = fastingMap(memberId);
-              int done = 0;
-              for (var d = 1; d <= 30; d++) {
-                if (fm['$d'] == true) done++;
-              }
-              return done;
-            }
-
-            int juzCount(String memberId) {
-              final jm = juzMap(memberId);
-              int done = 0;
-              for (var j = 1; j <= 30; j++) {
-                if (jm['$j'] == true) done++;
-              }
-              return done;
-            }
-
-            int uniqueSurahCount(String memberId) {
-              final sm = surahDatesMap(memberId);
-              int unique = 0;
-              for (var s = 1; s <= 114; s++) {
-                final dates = (sm['$s'] as List?)?.cast<String>() ?? const <String>[];
-                if (dates.isNotEmpty) unique++;
-              }
-              return unique;
-            }
-
             final leaderboard = [
               for (final mem in members)
                 (
                 id: mem.id,
                 name: mem.name,
-                fasting: fastingCount(mem.id),
-                juz: juzCount(mem.id),
-                surah: uniqueSurahCount(mem.id),
+                fasting: memberPuasaScore(mem.id).round(), // 0..180 (int for UI)
+                juz: memberJuzScore(mem.id),               // 0..30
+                surah: memberSurahScore(mem.id),           // 0..114
                 )
-            ]
-              ..sort((a, b) {
-                final scoreA = a.fasting + a.juz + a.surah;
-                final scoreB = b.fasting + b.juz + b.surah;
-                return scoreB.compareTo(scoreA);
-              });
+            ]..sort((a, b) {
+              final scoreA = a.fasting + a.juz + a.surah;
+              final scoreB = b.fasting + b.juz + b.surah;
+              return scoreB.compareTo(scoreA);
+            });
 
             return Scaffold(
               appBar: AppBar(
@@ -278,7 +327,6 @@ class HomePage extends ConsumerWidget {
                         ),
                         Tw.gap(Tw.s6),
 
-                        // Breeze-ish "dashboard cards" (clean, rounded, subtle)
                         LayoutBuilder(
                           builder: (context, c) {
                             final wide = c.maxWidth >= 760;
@@ -292,43 +340,50 @@ class HomePage extends ConsumerWidget {
                               children: [
                                 BreezeProgressCard(
                                   title: 'Puasa',
-                                  subtitle: '${(fastingPct * 100).round()}%  •  $fastingDoneCells / $fastingTotalCells',
+                                  subtitle:
+                                  '${(puasaPct * 100).round()}% • ${puasaScoreHousehold.toStringAsFixed(1)} / ${puasaMaxHousehold.toStringAsFixed(0)}',
                                   icon: Icons.check_circle_outline,
                                   onTap: () => context.go('/tracker-fasting'),
-                                  footer: 'Top streak: $topStreak day(s)',
-                                  badgeText: 'Hari 1– Hari 30',
-                                  progress: fastingPct,
-                                  valueText: '${(fastingPct * 100).round()}%',
+                                  footer: 'Top streak: $topStreak hari',
+                                  badgeText: 'Markah (Solat + Puasa)',
+                                  progress: puasaPct,
+                                  valueText: '${(puasaPct * 100).round()}%',
                                 ),
                                 BreezeProgressCard(
                                   title: 'Juzuk',
-                                  subtitle: '${(juzPct * 100).round()}%  •  $juzDoneCells / $juzTotalCells',
+                                  subtitle:
+                                  '${(juzPct * 100).round()}% • $juzDoneHousehold / $juzMaxHousehold',
                                   icon: Icons.menu_book_outlined,
                                   onTap: () => context.go('/tracker-juz'),
-                                  footer: 'Target: 30 juzuk',
-                                  badgeText: '1–30',
+                                  footer: 'Target: 30 juzuk setiap ahli',
+                                  badgeText: '30 Juzuk setiap ahli',
                                   progress: juzPct,
                                   valueText: '${(juzPct * 100).round()}%',
                                 ),
                                 BreezeProgressCard(
-                                  title: 'Surah (Hari ini)',
-                                  subtitle: '$surahTodayCount bacaan hari ini',
+                                  title: 'Surah',
+                                  subtitle:
+                                  '${(surahPct * 100).round()}% • $surahUniqueHousehold / $surahMaxHousehold',
                                   icon: Icons.library_books_outlined,
                                   onTap: () => context.go('/tracker-surah'),
-                                  footer: 'Date: $today',
-                                  badgeText: 'Daily',
+                                  footer: 'Hari ini: $today',
+                                  badgeText: '114 Surah setiap ahli',
+                                  progress: surahPct,
+                                  valueText: '${(surahPct * 100).round()}%',
                                 ),
                                 BreezeProgressCard(
                                   title: 'Berat',
-                                  subtitle: weightTrend == null
-                                      ? 'Tiada data lagi'
-                                      : '${weightTrend >= 0 ? '+' : ''}${weightTrend.toStringAsFixed(1)} kg',
+                                  subtitle: weightTrendText == null
+                                      ? 'Tiada lagi trend'
+                                      : '$weightTrendText (terkini)',
                                   icon: Icons.monitor_weight_outlined,
                                   onTap: () => context.go('/tracker-weight'),
-                                  footer: (earliestDate != null && latestDate != null)
-                                      ? 'Dari $earliestDate → $latestDate'
-                                      : 'Isi berat',
+                                  footer: (latestD != null && prevD != null)
+                                      ? 'Kemaskini: $latestD (sebelum: $prevD)'
+                                      : (latestD != null ? 'Kemaskini: $latestD' : 'Isi berat'),
                                   badgeText: 'Trend',
+                                  trendText: weightTrendText,
+                                  trendIcon: weightTrendIcon,
                                 ),
                               ],
                             );
@@ -337,7 +392,6 @@ class HomePage extends ConsumerWidget {
 
                         Tw.gap(Tw.s10),
 
-                        // ---- Modern Streaks (Breeze list + progress bars)
                         SectionHeader(
                           title: 'Streaks (Berpuasa)',
                           subtitle: 'Tanda berturut-turut berakhir pada hari yang diperiksa terkini',
@@ -351,7 +405,6 @@ class HomePage extends ConsumerWidget {
 
                         Tw.gap(Tw.s10),
 
-                        // ---- Modern Ramadan day summary (horizontal chips)
                         SectionHeader(
                           title: 'Ramadan Day Summary (Berpuasa)',
                           subtitle: 'Status isi rumah setiap hari',
@@ -376,29 +429,13 @@ class HomePage extends ConsumerWidget {
 
                         Tw.gap(Tw.s10),
 
-                        // ---- Modern Leaderboard (podium + tiles)
                         SectionHeader(
                           title: 'Leaderboard Keluarga ${profile.parents.first}',
-                          subtitle: 'Markah = Puasa + Juzuk + Surah',
+                          subtitle: 'Markah = Puasa & Solat (0–180) + Juzuk (0–30) + Surah (0–114)',
                           icon: Icons.emoji_events_rounded,
-                          trailing: Pill(
-                            text: 'Score: P + J + S',
-                            icon: Icons.info_outline_rounded,
-                          ),
                         ),
                         Tw.gap(Tw.s3),
                         BreezeLeaderboardCard(leaderboard: leaderboard),
-
-                        Tw.gap(Tw.s4),
-                        Text(
-                          'Markah = Puasa (0–30) + Juz (0–30) + Surah yang dibaca (0–114)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Tw.darkSubtext
-                                : Tw.slate700,
-                          ),
-                        ),
                       ],
                     ),
                   ),
