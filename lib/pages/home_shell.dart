@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ramadhan_hero/models/plan_type.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/auth_service.dart';
@@ -94,8 +94,8 @@ class HomePage extends ConsumerWidget {
             Map<String, dynamic> juzMap(String memberId) =>
                 (node(memberId)?['juz'] as Map<String, dynamic>?) ?? {};
 
-            Map<String, dynamic> surahDatesMap(String memberId) =>
-                (node(memberId)?['surahDates'] as Map<String, dynamic>?) ?? {};
+            Map<String, dynamic> surahMap(String memberId) =>
+                (node(memberId)?['surah'] as Map<String, dynamic>?) ?? {};
 
             Map<String, dynamic> weightMap(String memberId) =>
                 (node(memberId)?['weight'] as Map<String, dynamic>?) ?? {};
@@ -131,8 +131,8 @@ class HomePage extends ConsumerWidget {
               double total = 0;
               for (var d = 1; d <= 30; d++) {
                 final solat = solatDoneCount(memberId, d).toDouble(); // 0..5
-                final puasa = fastingValue(memberId, d);              // 0,0.5,1
-                total += (solat + puasa);                             // 0..6
+                final puasa = fastingValue(memberId, d); // 0,0.5,1
+                total += (solat + puasa); // 0..6
               }
               return total; // 0..180
             }
@@ -149,19 +149,67 @@ class HomePage extends ConsumerWidget {
               return done; // 0..30
             }
 
-            // ---------------------------
-            // ✅ SURAH SCORE (per member max 114)
-            // unique surah read at least once
-            // ---------------------------
+            ({int no, String name, DateTime at})? latestSurahRecitedByTime(String memberId) {
+              final sm = surahMap(memberId);
+
+              DateTime? bestAt;
+              int? bestNo;
+              String? bestName;
+
+              for (final entry in sm.entries) {
+                final surahKey = entry.key;
+                final surahNode = (entry.value as Map?)?.cast<String, dynamic>();
+                if (surahNode == null) continue;
+
+                final ts = surahNode['lastRecitedAt'];
+                if (ts is! Timestamp) continue;
+
+                final at = ts.toDate();
+                final no = (surahNode['no'] as num?)?.toInt() ?? int.tryParse(surahKey) ?? 0;
+                final name = (surahNode['name'] as String?) ?? 'Surah $surahKey';
+
+                if (bestAt == null || at.isAfter(bestAt)) {
+                  bestAt = at;
+                  bestNo = no;
+                  bestName = name;
+                }
+              }
+
+              if (bestAt == null || bestNo == null || bestName == null) return null;
+              return (no: bestNo, name: bestName, at: bestAt);
+            }
+
+            ({String memberName, int no, String name, DateTime at})? latestSurahHousehold() {
+              ({String memberName, int no, String name, DateTime at})? best;
+
+              for (final mem in members) {
+                final l = latestSurahRecitedByTime(mem.id);
+                if (l == null) continue;
+
+                if (best == null || l.at.isAfter(best.at)) {
+                  best = (memberName: mem.name, no: l.no, name: l.name, at: l.at);
+                }
+              }
+              return best;
+            }
+
             int memberSurahScore(String memberId) {
-              final sm = surahDatesMap(memberId);
+              final sm = surahMap(memberId);
               int unique = 0;
-              for (var s = 1; s <= 114; s++) {
-                final dates = (sm['$s'] as List?)?.cast<String>() ?? const <String>[];
+              for (final entry in sm.entries) {
+                final surahNode = (entry.value as Map?)?.cast<String, dynamic>();
+                final dates =
+                    (surahNode?['dateRecited'] as List?)?.cast<String>() ?? const <String>[];
                 if (dates.isNotEmpty) unique++;
               }
-              return unique; // 0..114
+              return unique; // 0..114 (based on what exists in map)
             }
+
+            final latestSurah = latestSurahHousehold();
+            final latestSurahText = latestSurah == null
+                ? 'Belum ada rekod'
+                : 'Terbaru: Surah ${latestSurah.name} • '
+                '${formatTime12h(latestSurah.at)} daripada ${latestSurah.memberName}';
 
             // Household dashboard stats
             double puasaScoreHousehold = 0;
@@ -205,11 +253,41 @@ class HomePage extends ConsumerWidget {
               return streak;
             }
 
+            bool isNotFasted(String memberId, int day) {
+              final fm = fastingMap(memberId);
+              if (!fm.containsKey('$day')) return false; // must be recorded
+              return fastingValue(memberId, day) == 0.0; // explicitly "Tidak Puasa"
+            }
+
+            int memberNotFastingStreak(String memberId) {
+              int last = 0;
+              for (var d = 1; d <= 30; d++) {
+                if (isNotFasted(memberId, d)) last = d;
+              }
+              int streak = 0;
+              for (var d = last; d >= 1; d--) {
+                if (isNotFasted(memberId, d)) {
+                  streak++;
+                } else {
+                  break;
+                }
+              }
+              return streak;
+            }
+
             final streakRows = [
               for (final mem in members) (id: mem.id, name: mem.name, streak: memberStreak(mem.id)),
             ]..sort((a, b) => b.streak.compareTo(a.streak));
 
             final topStreak = streakRows.isNotEmpty ? streakRows.first.streak : 0;
+
+            final notFastingStreakRows = [
+              for (final mem in members)
+                (id: mem.id, name: mem.name, streak: memberNotFastingStreak(mem.id)),
+            ]..sort((a, b) => b.streak.compareTo(a.streak));
+
+            final topNotFastingStreak =
+            notFastingStreakRows.isNotEmpty ? notFastingStreakRows.first.streak : 0;
 
             // Day-based summary: fasting completed per day (count >0)
             List<int> fastingPerDayDone = List.filled(30, 0);
@@ -276,17 +354,16 @@ class HomePage extends ConsumerWidget {
             }
 
             // ---------------------------
-            // ✅ LEADERBOARD: PuasaScore(0..180) + Juz(0..30) + Surah(0..114)
-            // total max = 324 per member
+            // ✅ LEADERBOARD
             // ---------------------------
             final leaderboard = [
               for (final mem in members)
                 (
                 id: mem.id,
                 name: mem.name,
-                fasting: memberPuasaScore(mem.id).round(), // 0..180 (int for UI)
-                juz: memberJuzScore(mem.id),               // 0..30
-                surah: memberSurahScore(mem.id),           // 0..114
+                fasting: memberPuasaScore(mem.id).round(),
+                juz: memberJuzScore(mem.id),
+                surah: memberSurahScore(mem.id),
                 )
             ]..sort((a, b) {
               final scoreA = a.fasting + a.juz + a.surah;
@@ -326,7 +403,6 @@ class HomePage extends ConsumerWidget {
                           ),
                         ),
                         Tw.gap(Tw.s6),
-
                         LayoutBuilder(
                           builder: (context, c) {
                             final isPhone = MediaQuery.of(context).size.width < 480;
@@ -366,7 +442,7 @@ class HomePage extends ConsumerWidget {
                                   '${(surahPct * 100).round()}% • $surahUniqueHousehold / $surahMaxHousehold',
                                   icon: Icons.library_books_outlined,
                                   onTap: () => context.go('/tracker-surah'),
-                                  footer: 'Hari ini: $today',
+                                  footer: latestSurahText,
                                   badgeText: '114 Surah setiap ahli',
                                   progress: surahPct,
                                   valueText: '${(surahPct * 100).round()}%',
@@ -389,9 +465,7 @@ class HomePage extends ConsumerWidget {
                             );
                           },
                         ),
-
                         Tw.gap(Tw.s10),
-
                         SectionHeader(
                           title: 'Streaks (Berpuasa)',
                           subtitle: 'Tanda berturut-turut berakhir pada hari yang diperiksa terkini',
@@ -402,13 +476,24 @@ class HomePage extends ConsumerWidget {
                           streakRows: streakRows,
                           maxDays: 30,
                         ),
+                        Tw.gap(Tw.s10),
+
+                        SectionHeader(
+                          title: 'Streaks (Tidak Puasa)',
+                          subtitle: 'Berturut-turut “Tidak Puasa” (hanya hari yang direkod)',
+                          icon: Icons.do_not_disturb_on_rounded,
+                        ),
+                        Tw.gap(Tw.s3),
+
+                        BreezeStreaksCard(
+                          streakRows: notFastingStreakRows,
+                          maxDays: 30,
+                        ),
 
                         Tw.gap(Tw.s10),
 
                         SectionHeader(
-                          title: isSolo
-                              ? 'Pencapaian'
-                              : 'Leaderboard Keluarga ${profile.parents.first}',
+                          title: isSolo ? 'Pencapaian' : 'Leaderboard Keluarga ${profile.parents.first}',
                           subtitle: isSolo
                               ? 'Markah anda: Puasa & Solat (0–180) + Juzuk (0–30) + Surah (0–114)'
                               : 'Markah = Puasa & Solat (0–180) + Juzuk (0–30) + Surah (0–114)',

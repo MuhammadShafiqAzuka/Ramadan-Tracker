@@ -1,6 +1,8 @@
+// surah_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'user_profile_service.dart';
+import '../utils/surah_list.dart';
 
 final surahServiceProvider = Provider<SurahService>((ref) {
   return SurahService(ref.read(firestoreProvider));
@@ -18,7 +20,7 @@ class SurahService {
     return _yearRef(uid, year).snapshots().map((s) => s.data());
   }
 
-  /// Adds/removes a date for a surah (1..114) for a member
+  /// Structure:
   Future<void> toggleSurahDate({
     required String uid,
     required int year,
@@ -30,16 +32,22 @@ class SurahService {
   }) async {
     if (surah < 1 || surah > 114) throw ArgumentError('surah must be 1..114');
 
+    final surahName = surahNames[surah - 1];
+
     await _yearRef(uid, year).set({
       'year': year,
       'updatedAt': FieldValue.serverTimestamp(),
       'members': {
         memberId: {
           'name': memberName,
-          'surahDates': {
-            '$surah': value
-                ? FieldValue.arrayUnion([isoDate])
-                : FieldValue.arrayRemove([isoDate]),
+          'surah': {
+            '$surah': {
+              'name': surahName,
+              'lastRecitedAt': value ? FieldValue.serverTimestamp() : FieldValue.delete(),
+              'dateRecited': value
+                  ? FieldValue.arrayUnion([isoDate])
+                  : FieldValue.arrayRemove([isoDate]),
+            }
           },
         }
       }

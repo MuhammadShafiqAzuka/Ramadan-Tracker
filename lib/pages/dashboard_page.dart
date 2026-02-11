@@ -207,7 +207,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           controller: _soloName,
                           decoration: const InputDecoration(labelText: 'Nama'),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Nama is required';
+                            if (v == null || v.trim().isEmpty) return 'Nama perlukan';
                             return null;
                           },
                         ),
@@ -218,7 +218,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           controller: _parent1,
                           decoration: const InputDecoration(labelText: 'Abah'),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Abah is required';
+                            if (v == null || v.trim().isEmpty) return 'Abah diperlukan';
                             return null;
                           },
                         ),
@@ -227,7 +227,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           controller: _parent2,
                           decoration: const InputDecoration(labelText: 'Ibu'),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Ibu is required';
+                            if (v == null || v.trim().isEmpty) return 'Ibu diperlukan';
                             return null;
                           },
                         ),
@@ -243,7 +243,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                             decoration: InputDecoration(labelText: 'Hero ${i + 1}'),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
-                                return 'Hero ${i + 1} is required';
+                                return 'Hero ${i + 1} diperlukan';
                               }
                               return null;
                             },

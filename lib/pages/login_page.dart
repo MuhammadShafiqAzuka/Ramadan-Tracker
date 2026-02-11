@@ -19,6 +19,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
 
+  // ✅ toggle state
+  bool _obscurePassword = true;
+
   final Uri signupUrlSolo = Uri.parse('https://toyyibpay.com/Ramadan-Hero-Solo');
   final Uri signupUrlFamily5 = Uri.parse('https://toyyibpay.com/Ramadan-Hero-Family5');
   final Uri signupUrlFamily9 = Uri.parse('https://toyyibpay.com/Ramadan-Hero-Family9');
@@ -38,6 +41,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   String? error;
 
   @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = ref.read(authServiceProvider);
 
@@ -47,7 +57,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         children: [
           Icon(Icons.star_rounded, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
-          Text('Ramadan Hero', style: TextStyle(fontWeight: FontWeight.w900)),
+          const Text('Ramadan Hero', style: TextStyle(fontWeight: FontWeight.w900)),
         ],
       ),
       title: 'Log masuk',
@@ -69,8 +79,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             Tw.gap(Tw.s4),
             TextFormField(
               controller: _password,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Kata Laluan'),
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: 'Kata Laluan',
+                suffixIcon: IconButton(
+                  tooltip: _obscurePassword ? 'Tunjuk kata laluan' : 'Sembunyi kata laluan',
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  ),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Password diperlukan';
                 if (v.length < 6) return 'Kata laluan mestilah sekurang-kurangnya 6 aksara';
@@ -138,7 +157,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
             ),
             Tw.gap(Tw.s4),
-
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -151,18 +169,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.rocket_launch_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+                      Icon(Icons.rocket_launch_rounded,
+                          size: 18, color: Theme.of(context).colorScheme.primary),
                       const SizedBox(width: 8),
                       const Text('Daftar akaun', style: TextStyle(fontWeight: FontWeight.w900)),
                       const Spacer(),
                       Text(
                         'Pilih pelan',
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).hintColor,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
                   Tw.gap(Tw.s3),
-
                   LayoutBuilder(
                     builder: (context, c) {
                       final isPhone = MediaQuery.of(context).size.width < 480 || c.maxWidth < 420;
@@ -193,7 +215,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       subtitle,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor, fontWeight: FontWeight.w600),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context).hintColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -206,7 +232,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       }
 
                       if (isPhone) {
-                        // stacked on phone
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -234,7 +259,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         );
                       }
 
-                      // 3 columns on larger screens
                       return Row(
                         children: [
                           Expanded(
@@ -270,9 +294,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ],
               ),
             ),
-
             Tw.gap(Tw.s6),
-
             Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -286,7 +308,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                   const SizedBox(width: 10),
-
                   Image.asset(
                     'assets/fnx.png',
                     height: 100,

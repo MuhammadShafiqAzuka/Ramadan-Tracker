@@ -62,17 +62,20 @@ class _SurahTrackerPageState extends ConsumerState<SurahTrackerPage> {
               return membersData[memberId] as Map<String, dynamic>?;
             }
 
+            // surah_tracker_page.dart (only the read helpers changed)
             bool recitedToday(String memberId, int surahNo) {
               final m = memberNode(memberId);
-              final surahDates = m?['surahDates'] as Map<String, dynamic>?;
-              final dates = (surahDates?['$surahNo'] as List?)?.cast<String>() ?? <String>[];
+              final surahMap = m?['surah'] as Map<String, dynamic>?;
+              final surahNode = surahMap?['$surahNo'] as Map<String, dynamic>?;
+              final dates = (surahNode?['dateRecited'] as List?)?.cast<String>() ?? <String>[];
               return dates.contains(today);
             }
 
             int timesRecited(String memberId, int surahNo) {
               final m = memberNode(memberId);
-              final surahDates = m?['surahDates'] as Map<String, dynamic>?;
-              final dates = (surahDates?['$surahNo'] as List?)?.cast<String>() ?? <String>[];
+              final surahMap = m?['surah'] as Map<String, dynamic>?;
+              final surahNode = surahMap?['$surahNo'] as Map<String, dynamic>?;
+              final dates = (surahNode?['dateRecited'] as List?)?.cast<String>() ?? <String>[];
               return dates.length;
             }
 

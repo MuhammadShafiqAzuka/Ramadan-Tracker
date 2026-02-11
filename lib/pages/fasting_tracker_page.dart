@@ -77,18 +77,60 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
             Map<String, dynamic>? memberNode(String memberId) =>
                 membersData[memberId] as Map<String, dynamic>?;
 
-            // ✅ fasting score/multiplier per day: 0.0, 0.5, 1.0 (backward compatible with bool)
+            /// ✅ fasting score per day:
+            /// - persisted: 0.0, 0.5, 1.0 (backward compatible with bool)
+            /// - DEFAULT (when missing): 0.0  ✅ (user must click to record)
             double fastingValue(String memberId, int day) {
               final m = memberNode(memberId);
               final fm = m?['fasting'] as Map<String, dynamic>?;
               final raw = fm?['$day'];
 
-              if (raw == null) return 0.0;
+              if (raw == null) return 0.0; // ✅ DEFAULT is 0.0 (not recorded / belum update)
               if (raw is bool) return raw ? 1.0 : 0.0; // old data
               if (raw is int) return raw.toDouble();
               if (raw is double) return raw;
               if (raw is num) return raw.toDouble();
               return 0.0;
+            }
+
+            /// ✅ whether fasting day is explicitly recorded in Firestore
+            bool isFastingRecorded(String memberId, int day) {
+              final m = memberNode(memberId);
+              final fm = m?['fasting'] as Map<String, dynamic>?;
+              return fm != null && fm.containsKey('$day');
+            }
+
+            /// ✅ Count explicitly saved "Tidak Puasa" days (score == 0.0 AND recorded)
+            int notFastingDays(String memberId) {
+              final m = memberNode(memberId);
+              final fm = m?['fasting'] as Map<String, dynamic>?;
+              if (fm == null) return 0;
+
+              int c = 0;
+              for (var d = 1; d <= 30; d++) {
+                final raw = fm['$d'];
+                if (raw == null) continue;
+
+                final v = (raw is bool)
+                    ? (raw ? 1.0 : 0.0)
+                    : (raw is num ? raw.toDouble() : null);
+
+                if ((v ?? 0.0) == 0.0) c++;
+              }
+              return c;
+            }
+
+            /// ✅ Count recorded fasting days (any recorded value: 0 / 0.5 / 1)
+            int recordedFastingDays(String memberId) {
+              final m = memberNode(memberId);
+              final fm = m?['fasting'] as Map<String, dynamic>?;
+              if (fm == null) return 0;
+
+              int c = 0;
+              for (var d = 1; d <= 30; d++) {
+                if (fm.containsKey('$d')) c++;
+              }
+              return c;
             }
 
             // ✅ solat helpers (per member, per day)
@@ -112,12 +154,12 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
               return c; // 0..5
             }
 
-            // ✅ NEW SCORE MODEL:
-            // day score = solatDone(0..5) + puasaBonus(0/0.5/1)
+            // ✅ score model:
+            // day score = solatDone(0..5) + puasa(0/0.5/1)
             // max per day = 6
             double dayScore(String memberId, int day) {
               final solat = solatDoneCount(memberId, day).toDouble(); // 0..5
-              final puasa = fastingValue(memberId, day); // 0,0.5,1
+              final puasa = fastingValue(memberId, day); // 0,0.5,1 (default 0)
               return solat + puasa; // 0..6
             }
 
@@ -128,16 +170,6 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
               }
               return total; // 0..180
             }
-
-            // ✅ Household overall progress (score-based)
-            final totalScoreMax = members.length * _maxPerMonth; // members*180
-
-            double householdScore = 0;
-            for (final mem in members) {
-              householdScore += memberScore(mem.id);
-            }
-
-            final overall = totalScoreMax == 0 ? 0.0 : (householdScore / totalScoreMax);
 
             final selectedName = members
                 .firstWhere((m) => m.id == selected, orElse: () => (id: '', name: ''))
@@ -150,21 +182,34 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
             if (selectedDay < 1) selectedDay = 1;
             if (selectedDay > 30) selectedDay = 30;
 
-            // current day (selectedDay) values
+            // current day values
             final todayFastingVal = (selected == null) ? 0.0 : fastingValue(selected, selectedDay);
-            final solatCount = (selected == null) ? 0 : solatDoneCount(selected, selectedDay);
-            final solatPct = solatCount / 5.0;
+            final todayFastingRecorded =
+            (selected == null) ? false : isFastingRecorded(selected, selectedDay);
 
-            // today total (solat + puasa)
+            final solatCount = (selected == null) ? 0 : solatDoneCount(selected, selectedDay);
+
             final todayTotal = (selected == null) ? 0.0 : dayScore(selected, selectedDay);
             final todayTotalPct = todayTotal / _maxPerDay;
 
-            // label helper
-            String puasaLabel(double v) {
+            String puasaLabel(double v, {required bool recorded}) {
+              if (!recorded) return 'Belum Rekod';
               if (v >= 1.0) return 'Puasa Penuh';
-              if (v >= 0.5) return 'Puasa Yang Yuk';
+              if (v >= 0.5) return 'Puasa Separuh';
               return 'Tidak Puasa';
             }
+
+            String missingSolatLabel(String memberId, int day) {
+              final missing = <String>[];
+              for (final p in _prayers) {
+                if (!isSolatDone(memberId, day, p.key)) missing.add(p.label);
+              }
+              if (missing.isEmpty) return 'Lengkap';
+              return 'Belum: ${missing.join(", ")}';
+            }
+
+            final selectedNotFastingCount = (selected == null) ? 0 : notFastingDays(selected);
+            final selectedRecordedFastingCount = (selected == null) ? 0 : recordedFastingDays(selected);
 
             return BreezeWebScaffold(
               title: 'Penjejak Puasa ($_year)',
@@ -174,27 +219,6 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // BreezeSectionHeader(
-                    //   title: 'Keseluruhan',
-                    //   subtitle: 'Score isi rumah (Solat + Puasa) untuk Ramadhan Hari 1 - Hari 30',
-                    //   icon: Icons.dashboard_rounded,
-                    //   trailing: BreezePill(
-                    //     text:
-                    //     '${(overall * 100).round()}%  •  ${householdScore.toStringAsFixed(1)} / ${totalScoreMax.toStringAsFixed(0)}',
-                    //     icon: Icons.check_circle_outline,
-                    //   ),
-                    // ),
-                    // Tw.gap(Tw.s3),
-                    // BreezeProgressBlock(
-                    //   title: 'Progress Isi Rumah (Markah)',
-                    //   value: overall,
-                    //   rightText: '${(overall * 100).round()}%',
-                    //   subtitle:
-                    //   '${householdScore.toStringAsFixed(1)} markah dari ${totalScoreMax.toStringAsFixed(0)} max',
-                    // ),
-                    //
-                    // Tw.gap(Tw.s5),
-
                     BreezeSectionHeader(
                       title: 'Ahli',
                       subtitle: 'Pilih ahli keluarga yang anda mahu kemas kini',
@@ -217,14 +241,16 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                         title: 'Progress untuk $selectedName (Markah)',
                         value: selectedProgress,
                         rightText: '${(selectedProgress * 100).round()}%',
-                        subtitle: '${selectedScore.toStringAsFixed(1)} / ${_maxPerMonth.toStringAsFixed(0)} score',
+                        subtitle:
+                        '${selectedScore.toStringAsFixed(1)} / ${_maxPerMonth.toStringAsFixed(0)} score'
+                            '  •  Rekod Puasa: $selectedRecordedFastingCount/30'
+                            '  •  Tidak Puasa: $selectedNotFastingCount hari',
                       ),
                       Tw.gap(Tw.s5),
 
-                      // ✅ PUASA GRID: tap selects day ONLY (no toggle fasting here)
                       BreezeSectionHeader(
                         title: 'Puasa',
-                        subtitle: 'Markah = Puasa (0-1) untuk 1 hari',
+                        subtitle: 'Default = 0 (Belum Rekod). Tekan butang untuk rekod status puasa.',
                         icon: Icons.calendar_month_rounded,
                         trailing: BreezePill(text: 'Hari $selectedDay', icon: Icons.today_rounded),
                       ),
@@ -254,17 +280,23 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                             itemBuilder: (context, idx) {
                               final day = idx + 1;
 
-                              final val = fastingValue(selected, day); // 0,0.5,1
-                              final checked = val > 0.0;
+                              final val = fastingValue(selected, day); // default 0
+                              final recorded = isFastingRecorded(selected, day);
                               final isSelected = day == selectedDay;
 
-                              final label = val == 0.5 ? 'Hari $day (½)' : 'Hari $day';
-                              final icon = val == 0.5
+                              final icon = !recorded
+                                  ? Icons.help_outline_rounded
+                                  : (val >= 1.0
+                                  ? Icons.nights_stay_rounded
+                                  : (val >= 0.5
                                   ? Icons.brightness_5_rounded
-                                  : Icons.nights_stay_rounded;
+                                  : Icons.cancel_rounded));
+
+                              // visual cue: checked when recorded
+                              final checked = recorded;
 
                               final chip = BreezeToggleChip(
-                                label: label,
+                                label: 'Hari $day',
                                 checked: checked,
                                 icon: icon,
                                 onTap: () => setState(() => selectedDay = day),
@@ -292,7 +324,6 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
 
                       Tw.gap(Tw.s6),
 
-                      // ✅ SOLAT SECTION: follows selectedDay
                       BreezeSectionHeader(
                         title: 'Solat (Hari $selectedDay)',
                         subtitle: 'Markah = Solat (0-5) untuk 1 hari',
@@ -304,70 +335,176 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                       ),
                       Tw.gap(Tw.s3),
 
-                      // ✅ Overall day score (Solat + Puasa) => max 6
                       BreezeProgressBlock(
-                        title: 'Score Hari $selectedDay (Solat + Puasa)',
+                        title: 'Score Hari $selectedDay (Puasa + Solat)',
                         value: todayTotalPct,
                         rightText: '${(todayTotalPct * 100).round()}%',
-                        subtitle: '${todayTotal.toStringAsFixed(1)} / ${_maxPerDay.toStringAsFixed(0)}',
+                        subtitle:
+                        '${todayTotal.toStringAsFixed(1)} / ${_maxPerDay.toStringAsFixed(0)}',
                       ),
 
                       Tw.gap(Tw.s4),
 
-                      // ✅ Buttons: set puasa bonus for selectedDay (0/0.5/1)
+                      // ✅ Buttons: set puasa score for selectedDay (0 / 0.5 / 1)
                       BreezeCard(
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton.tonal(
-                                onPressed: () async {
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // ✅ Status header (neat, clear)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.35),
+                                  border: Border.all(color: Theme.of(context).dividerColor),
+                                ),
+                                child: Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 10,
+                                  runSpacing: 6,
+                                  children: [
+                                    Icon(Icons.event_available_rounded,
+                                        size: 18, color: Theme.of(context).colorScheme.primary),
+                                    Text(
+                                      'Hari $selectedDay',
+                                      style: const TextStyle(fontWeight: FontWeight.w900),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(999),
+                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.10),
+                                        border: Border.all(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.20),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        puasaLabel(todayFastingVal, recorded: todayFastingRecorded),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(999),
+                                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.10),
+                                        border: Border.all(
+                                          color: Theme.of(context).colorScheme.secondary.withOpacity(0.20),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Solat: $solatCount/5',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: Theme.of(context).colorScheme.secondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // ✅ Missing solat line (only when needed)
+                              if (selected != null)
+                                Text(
+                                  missingSolatLabel(selected, selectedDay),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).hintColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+
+                              const SizedBox(height: 12),
+
+                              // ✅ Action buttons (responsive + consistent sizing)
+                              LayoutBuilder(
+                                builder: (context, c) {
+                                  final isNarrow = c.maxWidth < 560;
+
                                   final mem = members.firstWhere((m) => m.id == selected);
-                                  await fasting.setFastingScore(
-                                    uid: profile.uid,
-                                    year: _year,
-                                    memberId: mem.id,
-                                    memberName: mem.name,
-                                    day: selectedDay,
-                                    score: 0.5,
+
+                                  final currentScore = todayFastingVal; // 0.0, 0.5, 1.0
+
+                                  Widget fastingButton({
+                                    required String label,
+                                    required double value,
+                                  }) {
+                                    final isSelected = currentScore == value && todayFastingRecorded;
+
+                                    return SizedBox(
+                                      height: 44,
+                                      width: isNarrow ? double.infinity : 180,
+                                      child: OutlinedButton(
+                                        onPressed: () async {
+                                          await fasting.setFastingScore(
+                                            uid: profile.uid,
+                                            year: _year,
+                                            memberId: mem.id,
+                                            memberName: mem.name,
+                                            day: selectedDay,
+                                            score: value,
+                                          );
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(
+                                            color: isSelected
+                                                ? Theme.of(context).colorScheme.primary
+                                                : Theme.of(context).dividerColor,
+                                            width: isSelected ? 2 : 1,
+                                          ),
+                                          backgroundColor: isSelected
+                                              ? Theme.of(context).colorScheme.primary.withOpacity(0.08)
+                                              : Colors.transparent,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          textStyle: TextStyle(
+                                            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                                          ),
+                                        ),
+                                        child: Text(label),
+                                      ),
+                                    );
+                                  }
+
+                                  final buttons = <Widget>[
+                                    fastingButton(label: 'Tidak Puasa', value: 0.0),
+                                    fastingButton(label: 'Puasa Separuh', value: 0.5),
+                                    fastingButton(label: 'Puasa Penuh', value: 1.0),
+                                  ];
+
+                                  if (isNarrow) {
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        ...buttons.expand((w) sync* {
+                                          yield w;
+                                          yield const SizedBox(height: 10);
+                                        }).toList()
+                                          ..removeLast(),
+                                      ],
+                                    );
+                                  }
+
+                                  return Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    children: buttons,
                                   );
                                 },
-                                child: const Text('Puasa Separuh'),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: FilledButton(
-                                onPressed: () async {
-                                  final mem = members.firstWhere((m) => m.id == selected);
-                                  await fasting.setFastingScore(
-                                    uid: profile.uid,
-                                    year: _year,
-                                    memberId: mem.id,
-                                    memberName: mem.name,
-                                    day: selectedDay,
-                                    score: 1.0,
-                                  );
-                                },
-                                child: const Text('Puasa Penuh'),
-                              ),
-                            ),
-                            // const SizedBox(width: 10),
-                            // IconButton(
-                            //   tooltip: 'Kosongkan puasa hari ini',
-                            //   onPressed: () async {
-                            //     final mem = members.firstWhere((m) => m.id == selected);
-                            //     await fasting.setFastingScore(
-                            //       uid: profile.uid,
-                            //       year: _year,
-                            //       memberId: mem.id,
-                            //       memberName: mem.name,
-                            //       day: selectedDay,
-                            //       score: 0.0,
-                            //     );
-                            //   },
-                            //   icon: const Icon(Icons.delete_outline_rounded),
-                            // ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
 

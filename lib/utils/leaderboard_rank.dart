@@ -56,12 +56,6 @@ double tierProgress(int markah) {
   return ((markah - t.minScore) / span).clamp(0.0, 1.0);
 }
 
-String tierRemainText(int markah) {
-  final t = tierForMarkah(markah);
-  if (t.nextAt == null) return 'Max Rank';
-  final remain = (t.nextAt! - markah).clamp(0, 999999);
-  return '$remain lagi';
-}
 
 Color tierColor(ColorScheme cs, LeaderTier tier) {
   switch (tier.label) {

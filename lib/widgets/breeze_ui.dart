@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:go_router/go_router.dart';
 import '../utils/leaderboard_rank.dart';
 import '../utils/tw.dart';
 
@@ -290,12 +291,9 @@ class BreezeWebScaffold extends StatelessWidget {
         title: Text(title),
         actions: [
           if (onLogout != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: FilledButton.tonal(
-                onPressed: onLogout,
-                child: const Text('Keluar'),
-              ),
+            TextButton(
+              onPressed: () async => context.go("/home"),
+              child: const Text('Kembali'),
             ),
         ],
       ),
@@ -798,12 +796,13 @@ class BreezePodium extends StatelessWidget {
     final second = top3.length >= 2 ? top3[1] : null;
     final first = top3.isNotEmpty ? top3[0] : null;
     final third = top3.length >= 3 ? top3[2] : null;
+    final isPhone = MediaQuery.of(context).size.width < 480;
 
     Widget box({required int rank, required ({String id, String name, int fasting, int juz, int surah}) row}) {
       final ratio = switch (rank) {
-        1 => 1.6, // tallest
-        2 => 1.6,
-        _ => 1.6, // shortest
+        1 => isPhone ? 1.35 : 1.7, // tallest
+        2 => isPhone ? 1.35 : 1.7,
+        _ => isPhone ? 1.35 : 1.7, // shortest
       };
 
       return AspectRatio(
@@ -814,7 +813,6 @@ class BreezePodium extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, c) {
-        final isPhone = MediaQuery.of(context).size.width < 480;
         final stacked = isPhone || c.maxWidth < 560;
 
         if (stacked) {
@@ -982,10 +980,10 @@ class BreezePodiumCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: Tw.s2),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Text(
-                      'Markah $markah • Puasa ${row.fasting} • Juzuk ${row.juz} • Surah ${row.surah}',
-                      maxLines: isTight ? 1 : 2,
+                      'Markah $markah • Puasa & Solat ${row.fasting} • Juzuk ${row.juz} • Surah ${row.surah}',
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: Tw.s2,
@@ -994,7 +992,7 @@ class BreezePodiumCard extends StatelessWidget {
                       ),
                     ),
 
-                    const Spacer(),
+                    SizedBox(height: isPhone ? 13 : 15),
 
                     if (showProgress) ...[
                       ClipRRect(
@@ -1006,7 +1004,7 @@ class BreezePodiumCard extends StatelessWidget {
                           backgroundColor: Theme.of(context).dividerColor.withOpacity(0.35),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 10),
                       if (info != null)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1030,7 +1028,7 @@ class BreezePodiumCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '${info.remain} lagi',
+                                '${info.remain} point lagi',
                                 style: TextStyle(
                                   fontSize: Tw.s2,
                                   color: Theme.of(context).hintColor,
@@ -1115,7 +1113,8 @@ class BreezeLeaderboardCard extends StatelessWidget {
                 showRankBadge: false, // ✅ hide #1
               );
             }),
-          ] else ...[
+          ]
+          else ...[
             // ✅ FAMILY podium
             if (top3.isNotEmpty) ...[
               BreezePodium(top3: top3),
@@ -1292,7 +1291,7 @@ class BreezeLeaderboardTile extends StatelessWidget {
               text: info.nextTier.label,
               icon: info.nextTier.icon,
               color: tc,
-              suffix: '${info.remain} lagi',
+              suffix: '${info.remain} point lagi',
             ),
         ],
       );
@@ -1318,7 +1317,7 @@ class BreezeLeaderboardTile extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Puasa $fasting • Juzuk $juz • Surah $surah',
+          'Puasa & Solat $fasting • Juzuk $juz • Surah $surah',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: Tw.s2, color: hint, fontWeight: FontWeight.w600),

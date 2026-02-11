@@ -24,8 +24,20 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
 
+  // ✅ toggle states
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+
   bool loading = false;
   String? error;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,8 +64,17 @@ class _SignupPageState extends ConsumerState<SignupPage> {
             Tw.gap(Tw.s4),
             TextFormField(
               controller: _password,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Kata Laluan'),
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: 'Kata Laluan',
+                suffixIcon: IconButton(
+                  tooltip: _obscurePassword ? 'Tunjuk kata laluan' : 'Sembunyi kata laluan',
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  ),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Kata Laluan diperlukan';
                 if (v.length < 6) return 'Kata laluan mestilah sekurang-kurangnya 6 aksar';
@@ -63,8 +84,17 @@ class _SignupPageState extends ConsumerState<SignupPage> {
             Tw.gap(Tw.s4),
             TextFormField(
               controller: _confirm,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Sahkan Kata Laluan'),
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
+                labelText: 'Sahkan Kata Laluan',
+                suffixIcon: IconButton(
+                  tooltip: _obscureConfirm ? 'Tunjuk kata laluan' : 'Sembunyi kata laluan',
+                  icon: Icon(
+                    _obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  ),
+                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+              ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Sahkan kata laluan diperlukan';
                 if (v != _password.text) return 'Kata laluan tidak sepadan';
@@ -114,7 +144,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 } on FirebaseAuthException catch (e) {
                   setState(() => error = '${e.code}: ${e.message ?? ''}');
                 } on FirebaseException catch (e) {
-                  // 🔥 this will show Firestore permission / missing db / etc
                   debugPrint('FirebaseException plugin=${e.plugin} code=${e.code} message=${e.message}');
                   setState(() => error = '${e.code}: ${e.message ?? ''}');
                 } catch (e, st) {
@@ -122,7 +151,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   debugPrint('$st');
                   setState(() => error = e.toString());
                 } finally {
-                  setState(() => loading = false);
+                  if (mounted) setState(() => loading = false);
                 }
               },
               child: loading
