@@ -14,6 +14,26 @@ class LeaderTier {
   });
 }
 
+@immutable
+class NextTierInfo {
+  final int remain;
+  final LeaderTier nextTier;
+  const NextTierInfo({required this.remain, required this.nextTier});
+}
+
+NextTierInfo? nextTierInfo(int markah) {
+  final t = tierForMarkah(markah);
+  if (t.nextAt == null) return null;
+
+  final remain = (t.nextAt! - markah).clamp(0, 999999);
+  final next = _tiers.firstWhere(
+        (x) => x.minScore == t.nextAt,
+    orElse: () => _tiers.last,
+  );
+
+  return NextTierInfo(remain: remain, nextTier: next);
+}
+
 /// Max per member = 180 (30 days * 6)
 const _tiers = <LeaderTier>[
   LeaderTier(label: 'Pelatih',   icon: Icons.school_rounded,       minScore: 0,   nextAt: 45),
@@ -41,4 +61,17 @@ String tierRemainText(int markah) {
   if (t.nextAt == null) return 'Max Rank';
   final remain = (t.nextAt! - markah).clamp(0, 999999);
   return '$remain lagi';
+}
+
+Color tierColor(ColorScheme cs, LeaderTier tier) {
+  switch (tier.label) {
+    case 'Pelatih':
+      return cs.primary;
+    case 'Wira':
+      return const Color(0xFF3B82F6); // blue
+    case 'Hero':
+      return const Color(0xFF10B981); // green
+    default:
+      return const Color(0xFFA855F7); // purple (Legendary)
+  }
 }

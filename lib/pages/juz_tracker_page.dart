@@ -87,32 +87,32 @@ class _JuzTrackerPageState extends ConsumerState<JuzTrackerPage> {
               title: 'Penjejak Juzuk Quran ($_year)',
               onLogout: () async => ref.read(authServiceProvider).logout(),
               body: SingleChildScrollView(
-                padding: Tw.p(Tw.s8),
+                padding: Tw.p(Tw.s4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    BreezeSectionHeader(
-                      title: 'Keseluruhan',
-                      subtitle: 'Jejaki 30 juz completion setiap ahli isi rumah',
-                      icon: Icons.dashboard_rounded,
-                      trailing: BreezePill(
-                        text: '${(overall * 100).round()}%  •  $doneCells / $totalCells',
-                        icon: Icons.menu_book_outlined,
-                      ),
-                    ),
-                    Tw.gap(Tw.s3),
-                    BreezeProgressBlock(
-                      title: 'Progress Isi Rumah',
-                      value: overall,
-                      rightText: '${(overall * 100).round()}%',
-                      subtitle: '$doneCells ticks out of $totalCells total',
-                    ),
-
-                    Tw.gap(Tw.s5),
+                    // BreezeSectionHeader(
+                    //   title: 'Keseluruhan',
+                    //   subtitle: 'Jejaki 30 juz completion setiap ahli isi rumah',
+                    //   icon: Icons.dashboard_rounded,
+                    //   trailing: BreezePill(
+                    //     text: '${(overall * 100).round()}%  •  $doneCells / $totalCells',
+                    //     icon: Icons.menu_book_outlined,
+                    //   ),
+                    // ),
+                    // Tw.gap(Tw.s3),
+                    // BreezeProgressBlock(
+                    //   title: 'Progress Isi Rumah',
+                    //   value: overall,
+                    //   rightText: '${(overall * 100).round()}%',
+                    //   subtitle: '$doneCells ticks out of $totalCells total',
+                    // ),
+                    //
+                    // Tw.gap(Tw.s5),
 
                     BreezeSectionHeader(
                       title: 'Ahli',
-                      subtitle: 'Pilih orang yang anda mahu kemas kini',
+                      subtitle: 'Pilih ahli keluarga yang anda mahu kemas kini',
                       icon: Icons.people_alt_rounded,
                     ),
                     Tw.gap(Tw.s3),
@@ -135,7 +135,7 @@ class _JuzTrackerPageState extends ConsumerState<JuzTrackerPage> {
 
                       BreezeSectionHeader(
                         title: 'Juzuk',
-                        subtitle: 'Klik untuk toggle penyelesaian juzuk',
+                        subtitle: 'Markah = Juzuk (0-30) untuk 1 hari',
                         icon: Icons.menu_book_rounded,
                         trailing: BreezePill(text: '1–30', icon: Icons.tune_rounded),
                       ),
@@ -158,9 +158,9 @@ class _JuzTrackerPageState extends ConsumerState<JuzTrackerPage> {
                             itemCount: 30,
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: cross,
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
-                              childAspectRatio: 2.2,
+                              mainAxisSpacing: 5,
+                              crossAxisSpacing: 5,
+                              childAspectRatio: 1.8,
                             ),
                             itemBuilder: (context, idx) {
                               final j = idx + 1;

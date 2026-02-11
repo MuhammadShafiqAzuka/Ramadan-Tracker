@@ -16,7 +16,6 @@ class HomePage extends ConsumerWidget {
 
   static const _prayers = <String>['subuh', 'zohor', 'asar', 'maghrib', 'isyak'];
 
-  static const double _puasaMaxPerDay = 6.0;     // 5 solat + 1 puasa
   static const double _puasaMaxPerMember = 180.0; // 30 * 6
 
   @override
@@ -36,6 +35,7 @@ class HomePage extends ConsumerWidget {
 
         final name = profile.parents.isNotEmpty ? profile.parents.first : profile.email;
         final year = DateTime.now().year;
+        final isSolo = profile.planType.id == 'solo';
 
         // Members list
         final members = <({String id, String name})>[];
@@ -329,14 +329,14 @@ class HomePage extends ConsumerWidget {
 
                         LayoutBuilder(
                           builder: (context, c) {
-                            final wide = c.maxWidth >= 760;
+                            final isPhone = MediaQuery.of(context).size.width < 480;
                             return GridView.count(
-                              crossAxisCount: wide ? 2 : 1,
+                              crossAxisCount: isPhone ? 1 : 2,
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               mainAxisSpacing: 14,
                               crossAxisSpacing: 14,
-                              childAspectRatio: wide ? 2.35 : 2.75,
+                              childAspectRatio: isPhone ? 2 : 3.0,
                               children: [
                                 BreezeProgressCard(
                                   title: 'Puasa',
@@ -406,32 +406,12 @@ class HomePage extends ConsumerWidget {
                         Tw.gap(Tw.s10),
 
                         SectionHeader(
-                          title: 'Ramadan Day Summary (Berpuasa)',
-                          subtitle: 'Status isi rumah setiap hari',
-                          icon: Icons.calendar_month_rounded,
-                        ),
-                        Tw.gap(Tw.s3),
-                        BreezeCard(
-                          child: WheelToHorizontalScroll(
-                            child: Row(
-                              children: [
-                                for (var day = 1; day <= 30; day++) ...[
-                                  MiniDayChip(
-                                    label: 'Hari $day',
-                                    subtitle: '${fastingPerDayDone[day - 1]}/${members.length}',
-                                  ),
-                                  if (day != 30) const SizedBox(width: 10),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        Tw.gap(Tw.s10),
-
-                        SectionHeader(
-                          title: 'Leaderboard Keluarga ${profile.parents.first}',
-                          subtitle: 'Markah = Puasa & Solat (0–180) + Juzuk (0–30) + Surah (0–114)',
+                          title: isSolo
+                              ? 'Pencapaian'
+                              : 'Leaderboard Keluarga ${profile.parents.first}',
+                          subtitle: isSolo
+                              ? 'Markah anda: Puasa & Solat (0–180) + Juzuk (0–30) + Surah (0–114)'
+                              : 'Markah = Puasa & Solat (0–180) + Juzuk (0–30) + Surah (0–114)',
                           icon: Icons.emoji_events_rounded,
                         ),
                         Tw.gap(Tw.s3),
