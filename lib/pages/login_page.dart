@@ -30,6 +30,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
+  Future<void> _openSignupRoute(String route) async {
+    context.go('/$route');
+  }
+
   bool loading = false;
   String? error;
 
@@ -210,21 +214,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               title: 'Solo',
                               subtitle: '1 pengguna',
                               icon: Icons.person_rounded,
-                              onTap: () => _openSignup(signupUrlSolo),
+                              onTap: () => _openSignupRoute("signup-solo"),
                             ),
                             SizedBox(height: gap),
                             planButton(
                               title: 'Family 5',
                               subtitle: 'Sehingga 5 ahli',
                               icon: Icons.groups_rounded,
-                              onTap: () => _openSignup(signupUrlFamily5),
+                              onTap: () => _openSignupRoute('signup-five'),
                             ),
                             SizedBox(height: gap),
                             planButton(
                               title: 'Family 9',
                               subtitle: 'Sehingga 9 ahli',
                               icon: Icons.diversity_3_rounded,
-                              onTap: () => _openSignup(signupUrlFamily9),
+                              onTap: () => _openSignupRoute('signup-nine'),
                             ),
                           ],
                         );
@@ -238,7 +242,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               title: 'Solo',
                               subtitle: '1 pengguna',
                               icon: Icons.person_rounded,
-                              onTap: () => _openSignup(signupUrlSolo),
+                              onTap: () => _openSignupRoute("signup-solo"),
                             ),
                           ),
                           SizedBox(width: gap),
@@ -247,7 +251,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               title: 'Family 5',
                               subtitle: 'Sehingga 5 ahli',
                               icon: Icons.groups_rounded,
-                              onTap: () => _openSignup(signupUrlFamily5),
+                              onTap: () => _openSignupRoute("signup-five"),
                             ),
                           ),
                           SizedBox(width: gap),
@@ -256,7 +260,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               title: 'Family 9',
                               subtitle: 'Sehingga 9 ahli',
                               icon: Icons.diversity_3_rounded,
-                              onTap: () => _openSignup(signupUrlFamily9),
+                              onTap: () => _openSignupRoute("signup-nine"),
                             ),
                           ),
                         ],
