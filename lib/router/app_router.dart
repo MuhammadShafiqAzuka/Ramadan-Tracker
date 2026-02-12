@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ramadhan_hero/pages/setting_page.dart';
 
 import '../models/plan_type.dart';
 import '../pages/fasting_tracker_page.dart';
@@ -64,6 +65,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(path: '/home', builder: (_, __) => const HomePage()),
+      GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),
       GoRoute(path: '/tracker-fasting', builder: (_, __) => const FastingTrackerPage()),
       GoRoute(path: '/tracker-juz', builder: (_, __) => const JuzTrackerPage()),
       GoRoute(path: '/tracker-surah', builder: (_, __) => const SurahTrackerPage()),

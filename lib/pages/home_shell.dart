@@ -480,6 +480,22 @@ class HomePage extends ConsumerWidget {
                     ),
                     child: const ThemeToggle(),
                   ),
+
+                  // 👇 This one goes to Settings page
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: border),
+                      color: Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.12 : 0.06),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () {
+                        context.go("/settings");
+                      },
+                    ),
+                  ),
+
                   TextButton(
                     onPressed: () async => ref.read(authServiceProvider).logout(),
                     child: const Text('Log keluar'),
