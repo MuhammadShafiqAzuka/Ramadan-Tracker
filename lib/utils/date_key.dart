@@ -18,3 +18,16 @@ String formatTime12h(DateTime dt) {
 
   return '$hour.$minuteStr$suffix';
 }
+
+final reminders = <String>[
+  'Jangan lupa berniat puasa bila bangun sahur 🌙\n\nNawaitu shauma ghadin ‘an adā’i fardhi syahri Ramadhāna hādzihis sanati lillāhi ta‘ālā.',
+  'Bismillah. Sedikit tetapi konsisten itu paling dicintai 😊',
+  'Ingat solat awal waktu—mudahkan urusan hari ini ✨',
+  'Semoga Allah terima amalan kita hari ini. Aamiin 🤲',
+  'Kalau terlepas rekod, boleh isi semula bila ingat 👍',
+];
+
+String isoTodayKey(DateTime now) =>
+    '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';

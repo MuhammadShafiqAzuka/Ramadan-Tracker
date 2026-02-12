@@ -8,6 +8,7 @@ import '../providers/profile_provider.dart';
 import '../services/auth_service.dart';
 import '../services/user_profile_service.dart';
 import '../utils/tw.dart';
+import '../widgets/theme_toggle.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -85,6 +86,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
     final profileAsync = ref.watch(userProfileProvider);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final border = isDark ? Tw.darkBorder : Tw.slate200;
+
     return profileAsync.when(
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -152,8 +156,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text('Ramadan Tracker (${plan.title})'),
+            title: Text('Ramadan Hero • ${profile.planType.title}'),
             actions: [
+              // Breeze-like small icon control area
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: border),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.12 : 0.06),
+                ),
+                child: const ThemeToggle(),
+              ),
               TextButton(
                 onPressed: () async => auth. logout(),
                 child: const Text('Log keluar'),

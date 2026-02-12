@@ -68,3 +68,4 @@ class Tw {
   // Helpers
   static SizedBox gap(double v) => SizedBox(height: v);
 }
+enum Tone { primary, secondary, tertiary, neutral }

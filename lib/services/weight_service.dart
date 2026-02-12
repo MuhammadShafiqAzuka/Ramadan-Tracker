@@ -37,4 +37,27 @@ class WeightService {
       }
     }, SetOptions(merge: true));
   }
+
+  Future<void> setWeightCheckpoint({
+    required String uid,
+    required int year,
+    required String memberId,
+    required String memberName,
+    required String key, // 'start' | 'end'
+    required double weight,
+  }) async {
+    assert(key == 'start' || key == 'end');
+
+    await _yearRef(uid, year).set({
+      'year': year,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'members': {
+        memberId: {
+          'name': memberName,
+          'weightCheckpoint': {key: weight},
+          'weightCheckpointAt': {key: FieldValue.serverTimestamp()},
+        }
+      }
+    }, SetOptions(merge: true));
+  }
 }

@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ramadhan_hero/widgets/theme_toggle.dart';
+import '../providers/home_reminder.dart';
+import '../utils/date_key.dart';
 import '../utils/leaderboard_rank.dart';
 import '../utils/tw.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class BreezeSectionHeader extends StatelessWidget {
   final String title;
@@ -286,10 +292,22 @@ class BreezeWebScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final border = isDark ? Tw.darkBorder : Tw.slate200;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
         actions: [
+          // Breeze-like small icon control area
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: border),
+              color: Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.12 : 0.06),
+            ),
+            child: const ThemeToggle(),
+          ),
           if (onLogout != null)
             TextButton(
               onPressed: () async => context.go("/home"),
@@ -619,7 +637,15 @@ class BreezeStreaksCard extends StatelessWidget {
   final List<({String id, String name, int streak})> streakRows;
   final int maxDays;
 
-  const BreezeStreaksCard({required this.streakRows, required this.maxDays});
+  /// ✅ NEW: allow hiding "Top: X hari"
+  final bool showTopPill;
+
+  const BreezeStreaksCard({
+    super.key,
+    required this.streakRows,
+    required this.maxDays,
+    this.showTopPill = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -660,7 +686,11 @@ class BreezeStreaksCard extends StatelessWidget {
                       width: 28,
                       child: Text(
                         '${i + 1}',
-                        style: TextStyle(fontWeight: FontWeight.w900, color: Theme.of(context).hintColor, fontSize: Tw.s2),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Theme.of(context).hintColor,
+                          fontSize: Tw.s2,
+                        ),
                       ),
                     ),
                     Expanded(
@@ -677,7 +707,7 @@ class BreezeStreaksCard extends StatelessWidget {
                                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Tw.s2),
                                 ),
                               ),
-                              if (isTop) ...[
+                              if (showTopPill && isTop) ...[
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1505,6 +1535,595 @@ class WheelToHorizontalScroll extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: child,
         ),
+      ),
+    );
+  }
+}
+
+
+// -----------------------------
+// ✅ UI: Not fasting combined
+// -----------------------------
+class NotFastingCombinedCard extends StatelessWidget {
+  final List<({String id, String name})> members;
+  final List<({String id, String name, int streak})> streakRows;
+
+  final List<({
+  String memberId,
+  String memberName,
+  int day,
+  String? reason,
+  bool fidyahPaid,
+  })> notFastingEntries;
+
+  const NotFastingCombinedCard({
+    required this.members,
+    required this.streakRows,
+    required this.notFastingEntries,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hint = Theme.of(context).hintColor;
+
+    final byMember = <String, List<({
+    String memberId,
+    String memberName,
+    int day,
+    String? reason,
+    bool fidyahPaid,
+    })>>{};
+
+    for (final e in notFastingEntries) {
+      byMember.putIfAbsent(e.memberId, () => []).add(e);
+    }
+    for (final list in byMember.values) {
+      list.sort((a, b) => b.day.compareTo(a.day));
+    }
+
+    return BreezeCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          BreezeStreaksCard(
+            streakRows: streakRows,
+            maxDays: 30,
+            showTopPill: false,
+          ),
+          const SizedBox(height: 16),
+          Divider(color: Theme.of(context).dividerColor),
+          const SizedBox(height: 16),
+          Text(
+            'Sebab Tidak Puasa (rekod terkini)',
+            style: TextStyle(fontWeight: FontWeight.w900, color: hint),
+          ),
+          const SizedBox(height: 10),
+          if (notFastingEntries.isEmpty)
+            Text('Tiada rekod “Tidak Puasa” lagi.', style: TextStyle(color: hint))
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final m in members)
+                  if ((byMember[m.id]?.isNotEmpty ?? false))
+                    ReasonMiniCard(
+                      memberName: m.name,
+                      entries: byMember[m.id]!,
+                    ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class ReasonMiniCard extends StatelessWidget {
+  final String memberName;
+
+  final List<({
+  String memberId,
+  String memberName,
+  int day,
+  String? reason,
+  bool fidyahPaid,
+  })> entries;
+
+  const ReasonMiniCard({
+    required this.memberName,
+    required this.entries,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final border = Theme.of(context).dividerColor;
+    final hint = Theme.of(context).hintColor;
+
+    final top3 = entries.take(3).toList();
+
+    return Container(
+      width: 320,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
+        color: cs.primary.withOpacity(0.05),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  memberName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+              BreezePill(text: '${entries.length} hari', icon: Icons.calendar_today_rounded),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...top3.map((e) {
+            final text = (e.reason == null || e.reason!.trim().isEmpty) ? '(Tiada sebab)' : e.reason!.trim();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: border),
+                      color: cs.primary.withOpacity(0.06),
+                    ),
+                    child: Text(
+                      'Hari ${e.day}',
+                      style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      text,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: hint, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (entries.length > 3)
+            Text(
+              '+ ${entries.length - 3} rekod lagi',
+              style: TextStyle(fontSize: 12, color: hint, fontWeight: FontWeight.w700),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// -----------------------------
+// ✅ UI: Fidyah payment card
+// -----------------------------
+class FidyahPaymentCard extends StatelessWidget {
+  static const double _ratePerDay = 4.0; // 1 Hari = RM 4
+
+  final List<({
+  String memberId,
+  String memberName,
+  int day,
+  String? reason,
+  bool fidyahPaid,
+  })> entries;
+
+  final Future<void> Function(String memberId, String memberName, bool paid) onSetAllPaid;
+
+  const FidyahPaymentCard({
+    required this.entries,
+    required this.onSetAllPaid,
+  });
+
+  String _rm(double v) {
+    final s = v.toStringAsFixed(v % 1 == 0 ? 0 : 2);
+    return 'RM $s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hint = Theme.of(context).hintColor;
+
+    final map = <String, List<({
+    String memberId,
+    String memberName,
+    int day,
+    String? reason,
+    bool fidyahPaid,
+    })>>{};
+
+    for (final e in entries) {
+      map.putIfAbsent(e.memberId, () => []).add(e);
+    }
+
+    final rows = map.entries.map((kv) {
+      final memberId = kv.key;
+      final list = kv.value;
+      final memberName = list.first.memberName;
+      final total = list.length;
+      final paid = list.where((x) => x.fidyahPaid).length;
+      final unpaid = total - paid;
+
+      final totalAmount = total * _ratePerDay;
+      final paidAmount = paid * _ratePerDay;
+      final unpaidAmount = unpaid * _ratePerDay;
+
+      return (
+      memberId: memberId,
+      memberName: memberName,
+      total: total,
+      paid: paid,
+      unpaid: unpaid,
+      totalAmount: totalAmount,
+      paidAmount: paidAmount,
+      unpaidAmount: unpaidAmount,
+      );
+    }).toList()
+      ..sort((a, b) => b.total.compareTo(a.total));
+
+    final totalAll = entries.length;
+    final paidAll = entries.where((e) => e.fidyahPaid).length;
+    final unpaidAll = totalAll - paidAll;
+
+    final totalAmountAll = totalAll * _ratePerDay;
+    final paidAmountAll = paidAll * _ratePerDay;
+    final unpaidAmountAll = unpaidAll * _ratePerDay;
+
+    return BreezeCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.payments_rounded, color: cs.primary),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text('Fidyah', style: TextStyle(fontWeight: FontWeight.w900)),
+              ),
+              BreezePill(text: '$paidAll / $totalAll dibayar', icon: Icons.verified_rounded),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              BreezePill(text: '1 Hari = ${_rm(_ratePerDay)}', icon: Icons.info_outline_rounded),
+              BreezePill(text: 'Jumlah: ${_rm(totalAmountAll)}', icon: Icons.calculate_rounded),
+              BreezePill(text: 'Dibayar: ${_rm(paidAmountAll)}', icon: Icons.check_circle_rounded),
+              BreezePill(text: 'Baki: ${_rm(unpaidAmountAll)}', icon: Icons.pending_actions_rounded),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(color: Theme.of(context).dividerColor),
+          const SizedBox(height: 12),
+          if (rows.isEmpty)
+            Text('Tiada rekod fidyah.', style: TextStyle(color: hint))
+          else
+            ...rows.map((r) {
+              final allPaid = r.paid == r.total && r.total > 0;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.memberName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Jumlah: ${_rm(r.totalAmount)} • Dibayar: ${_rm(r.paidAmount)} • Baki: ${_rm(r.unpaidAmount)}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: hint, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    BreezePill(text: '${r.paid}/${r.total}', icon: Icons.receipt_long_rounded),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        onPressed: () async => onSetAllPaid(r.memberId, r.memberName, !allPaid),
+                        icon: Icon(
+                          allPaid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                          color: allPaid ? cs.primary : hint,
+                        ),
+                        label: Text(allPaid ? 'Semua Dibayar' : 'Tanda Semua'),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          side: BorderSide(
+                            color: allPaid ? cs.primary : Theme.of(context).dividerColor,
+                            width: allPaid ? 2 : 1,
+                          ),
+                          backgroundColor: allPaid ? cs.primary.withOpacity(0.08) : Colors.transparent,
+                          textStyle: TextStyle(fontWeight: allPaid ? FontWeight.w900 : FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+class HomeReminderCard extends ConsumerStatefulWidget {
+  const HomeReminderCard({
+    super.key,
+    required this.messages,
+    this.onTap,
+    this.secondsPerMessage = 10,
+    this.typeSpeedMs = 22,
+  });
+
+  final List<String> messages;
+  final VoidCallback? onTap;
+
+  final int secondsPerMessage; // rotate interval
+  final int typeSpeedMs; // typing speed
+
+  @override
+  ConsumerState<HomeReminderCard> createState() => _HomeReminderCardState();
+}
+
+class _HomeReminderCardState extends ConsumerState<HomeReminderCard> with SingleTickerProviderStateMixin {
+  int _msgIndex = 0;
+  int _charCount = 0;
+
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  Timer? _rotateTimer;
+  Timer? _typeTimer;
+
+  String get _currentMessage => widget.messages.isEmpty
+      ? ''
+      : widget.messages[_msgIndex % widget.messages.length];
+
+  @override
+  void initState() {
+    super.initState();
+
+    _fadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+
+    _fade = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOutCubic));
+
+    _startCycle();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeReminderCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.messages != widget.messages) {
+      _msgIndex = 0;
+      _restartTyping();
+    }
+  }
+
+  void _startCycle() {
+    _fadeCtrl.forward();
+    _restartTyping();
+
+    _rotateTimer?.cancel();
+    _rotateTimer = Timer.periodic(
+      Duration(seconds: widget.secondsPerMessage),
+          (_) => _nextMessage(),
+    );
+  }
+
+  void _restartTyping() {
+    _typeTimer?.cancel();
+    setState(() => _charCount = 0);
+
+    final msg = _currentMessage;
+    if (msg.isEmpty) return;
+
+    _typeTimer = Timer.periodic(
+      Duration(milliseconds: widget.typeSpeedMs),
+          (t) {
+        if (!mounted) return;
+        if (_charCount >= msg.length) {
+          t.cancel();
+        } else {
+          setState(() => _charCount++);
+        }
+      },
+    );
+  }
+
+  void _nextMessage() async {
+    if (!mounted || widget.messages.isEmpty) return;
+
+    // fade out
+    await _fadeCtrl.reverse();
+
+    if (!mounted) return;
+
+    setState(() {
+      _msgIndex = (_msgIndex + 1) % widget.messages.length;
+      _charCount = 0;
+    });
+
+    // fade in + retype
+    await _fadeCtrl.forward();
+    _restartTyping();
+  }
+
+  @override
+  void dispose() {
+    _rotateTimer?.cancel();
+    _typeTimer?.cancel();
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final border = Theme.of(context).dividerColor;
+    final hint = Theme.of(context).hintColor;
+
+    final msg = _currentMessage;
+    final typed = (msg.isEmpty)
+        ? ''
+        : msg.substring(0, _charCount.clamp(0, msg.length));
+
+    return BreezeCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: cs.primary.withOpacity(0.10),
+              border: Border.all(color: border),
+            ),
+            child: Icon(Icons.notifications_active_rounded, color: cs.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ✅ STATIC header (never changes)
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Pengumuman:',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: border),
+                        color: cs.primary.withOpacity(0.06),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.autorenew_rounded, size: 14, color: cs.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            'auto',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+
+                // ✅ ONLY message animates + typewriter
+                FadeTransition(
+                  opacity: _fade,
+                  child: SlideTransition(
+                    position: _slide,
+                    child: Text(
+                      typed,
+                      style: TextStyle(
+                        color: hint,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ✅ ONLY THIS PART is clickable
+                if (widget.onTap != null) ...[
+                  const SizedBox(height: 10),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: widget.onTap,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.touch_app_rounded, size: 16, color: cs.primary),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Tekan untuk buka tracker',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: cs.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          IconButton(
+            tooltip: 'Tutup (hari ini)',
+            onPressed: () {
+              final today = isoTodayKey(DateTime.now());
+              ref.read(homeReminderProvider.notifier).dismissToday(today);
+            },
+            icon: Icon(Icons.close_rounded, color: hint),
+          ),
+        ],
       ),
     );
   }
