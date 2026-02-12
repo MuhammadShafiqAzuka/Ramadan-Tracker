@@ -1540,6 +1540,366 @@ class WheelToHorizontalScroll extends StatelessWidget {
   }
 }
 
+class WeightChangeCard extends StatelessWidget {
+  const WeightChangeCard({
+    super.key,
+    required this.rows,
+  });
+
+  final List<({
+  String memberId,
+  String memberName,
+  double? start,
+  double? end,
+  double? diff,
+  })> rows;
+
+  String _kg(double? v) {
+    if (v == null) return '-';
+    final s = v.toStringAsFixed(v % 1 == 0 ? 0 : 1);
+    return '$s kg';
+  }
+
+  String _diffText(double d) {
+    if (d > 0) return '+${d.toStringAsFixed(1)} kg';
+    if (d < 0) return '${d.toStringAsFixed(1)} kg';
+    return '0.0 kg';
+  }
+
+  IconData _diffIcon(double d) {
+    if (d > 0) return Icons.trending_up_rounded;
+    if (d < 0) return Icons.trending_down_rounded;
+    return Icons.trending_flat_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hint = Theme.of(context).hintColor;
+    final border = Theme.of(context).dividerColor;
+
+    final done = rows.where((r) => r.diff != null).toList();
+    final pending = rows.where((r) => r.diff == null).toList();
+
+    return BreezeCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Pill(text: '${done.length}/${rows.length} lengkap', icon: Icons.verified_rounded),
+              const Spacer(),
+              Text(
+                'Awal → Akhir',
+                style: TextStyle(fontSize: Tw.s2, color: hint, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(color: border),
+          const SizedBox(height: 12),
+
+          if (rows.isEmpty)
+            Text('Tiada ahli.', style: TextStyle(color: hint))
+          else ...[
+            // ✅ show completed first
+            ...done.map((r) {
+              final d = r.diff!;
+              final icon = _diffIcon(d);
+
+              final pillBg = d == 0
+                  ? cs.primary.withOpacity(0.06)
+                  : (d > 0 ? cs.error.withOpacity(0.08) : cs.primary.withOpacity(0.08));
+
+              final pillColor = d == 0
+                  ? cs.primary
+                  : (d > 0 ? cs.error : cs.primary);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.memberName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Awal ${_kg(r.start)}  •  Akhir ${_kg(r.end)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: hint,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: border),
+                        color: pillBg,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: 16, color: pillColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            _diffText(d),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              color: pillColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            if (pending.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Divider(color: border),
+              const SizedBox(height: 8),
+              Text(
+                'Belum lengkap (perlukan Awal & Akhir)',
+                style: TextStyle(fontWeight: FontWeight.w900, color: hint, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              ...pending.map((r) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          r.memberName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Awal ${_kg(r.start)} • Akhir ${_kg(r.end)}',
+                        style: TextStyle(fontSize: 12, color: hint, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class WeightDailyCard extends StatelessWidget {
+  const WeightDailyCard({
+    super.key,
+    required this.rows,
+    required this.membersCount,
+    required this.membersWithAny,
+    required this.entriesTotal,
+    required this.lastUpdated,
+  });
+
+  final List<({
+  String memberId,
+  String memberName,
+  int entries,
+  String? firstDate,
+  String? lastDate,
+  double? firstWeight,
+  double? lastWeight,
+  double? diff,
+  })> rows;
+
+  final int membersCount;
+  final int membersWithAny;
+  final int entriesTotal;
+  final String? lastUpdated;
+
+  String _kg(double? v) {
+    if (v == null) return '-';
+    final s = v.toStringAsFixed(v % 1 == 0 ? 0 : 1);
+    return '$s kg';
+  }
+
+  String _diffText(double d) {
+    if (d > 0) return '+${d.toStringAsFixed(1)} kg';
+    if (d < 0) return '${d.toStringAsFixed(1)} kg';
+    return '0.0 kg';
+  }
+
+  IconData _diffIcon(double d) {
+    if (d > 0) return Icons.trending_up_rounded;
+    if (d < 0) return Icons.trending_down_rounded;
+    return Icons.trending_flat_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hint = Theme.of(context).hintColor;
+    final border = Theme.of(context).dividerColor;
+
+    final withAny = rows.where((r) => r.entries > 0).toList();
+    final none = rows.where((r) => r.entries == 0).toList();
+
+    return BreezeCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Pill(
+                text: 'Harian: $membersWithAny/$membersCount ahli',
+                icon: Icons.calendar_month_rounded,
+              ),
+              const SizedBox(width: 10),
+              Pill(
+                text: '$entriesTotal entri',
+                icon: Icons.list_alt_rounded,
+              ),
+              const Spacer(),
+              Text(
+                lastUpdated == null ? '—' : 'Updated $lastUpdated',
+                style: TextStyle(fontSize: Tw.s2, color: hint, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(color: border),
+          const SizedBox(height: 12),
+
+          if (rows.isEmpty)
+            Text('Tiada ahli.', style: TextStyle(color: hint))
+          else ...[
+            // ✅ members with daily entries
+            ...withAny.map((r) {
+              final d = r.diff ?? 0.0;
+              final icon = _diffIcon(d);
+
+              final pillBg = d == 0
+                  ? cs.primary.withOpacity(0.06)
+                  : (d > 0 ? cs.error.withOpacity(0.08) : cs.primary.withOpacity(0.08));
+
+              final pillColor = d == 0 ? cs.primary : (d > 0 ? cs.error : cs.primary);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.memberName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${r.entries} entri • ${r.firstDate} → ${r.lastDate}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: hint, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Awal ${_kg(r.firstWeight)} • Akhir ${_kg(r.lastWeight)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: hint, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: border),
+                        color: pillBg,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: 16, color: pillColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            _diffText(d),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              color: pillColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            // ✅ members without daily entries
+            if (none.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Divider(color: border),
+              const SizedBox(height: 8),
+              Text(
+                'Belum ada rekod harian',
+                style: TextStyle(fontWeight: FontWeight.w900, color: hint, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              ...none.map((r) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          r.memberName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      Text('0 entri', style: TextStyle(fontSize: 12, color: hint, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 // -----------------------------
 // ✅ UI: Not fasting combined

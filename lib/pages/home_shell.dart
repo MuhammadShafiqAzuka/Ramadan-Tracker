@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ramadhan_hero/models/plan_type.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/fasting_provider.dart';
 import '../providers/home_reminder.dart';
@@ -311,13 +312,21 @@ class HomePage extends ConsumerWidget {
             });
 
             // ---------------------------
-            // ✅ WEIGHT: Mandatory checkpoints summary (start/end)
+            // ✅ WEIGHT: Wajib checkpoints (Awal/Akhir) + Daily summary
             // ---------------------------
             final nMembers = members.length;
 
+            // -------- Wajib (checkpoints)
             int startDone = 0;
             int endDone = 0;
-            final diffs = <double>[];
+
+            final weightRows = <({
+            String memberId,
+            String memberName,
+            double? start,
+            double? end,
+            double? diff,
+            })>[];
 
             for (final mem in members) {
               final cp = weightCheckpointMap(mem.id);
@@ -329,104 +338,117 @@ class HomePage extends ConsumerWidget {
               if (sv != null) startDone++;
               if (ev != null) endDone++;
 
-              if (sv != null && ev != null) {
-                diffs.add(ev - sv);
-              }
+              final diff = (sv != null && ev != null) ? (ev - sv) : null;
+
+              weightRows.add((
+              memberId: mem.id,
+              memberName: mem.name,
+              start: sv,
+              end: ev,
+              diff: diff,
+              ));
             }
 
-            double? avgCheckpointDiff;
-            if (diffs.isNotEmpty) {
-              avgCheckpointDiff = diffs.reduce((a, b) => a + b) / diffs.length;
+            // Sort: complete first, bigger abs diff first
+            weightRows.sort((a, b) {
+              final ad = a.diff;
+              final bd = b.diff;
+              if (ad == null && bd == null) return a.memberName.compareTo(b.memberName);
+              if (ad == null) return 1;
+              if (bd == null) return -1;
+              final byAbs = bd.abs().compareTo(ad.abs());
+              if (byAbs != 0) return byAbs;
+              return a.memberName.compareTo(b.memberName);
+            });
+
+            int wajibDoneBoth = 0;
+            double wajibTotalDiff = 0.0;
+            int gainCount = 0;
+            int loseCount = 0;
+            int sameCount = 0;
+
+            for (final r in weightRows) {
+              if (r.diff == null) continue;
+              wajibDoneBoth++;
+              wajibTotalDiff += r.diff!;
+              if (r.diff! > 0) gainCount++;
+              else if (r.diff! < 0) loseCount++;
+              else sameCount++;
             }
 
-            String _fmtKg(double v) {
-              final s = v.toStringAsFixed(v % 1 == 0 ? 0 : 1);
-              return '$s kg';
-            }
+            double? avgDiff = wajibDoneBoth == 0 ? null : wajibTotalDiff / wajibDoneBoth;
 
-            String? checkpointDiffText;
-            IconData? checkpointDiffIcon;
-            if (avgCheckpointDiff != null) {
-              if (avgCheckpointDiff > 0) {
-                checkpointDiffIcon = Icons.trending_up_rounded;
-                checkpointDiffText = '+${avgCheckpointDiff.toStringAsFixed(1)} kg';
-              } else if (avgCheckpointDiff < 0) {
-                checkpointDiffIcon = Icons.trending_down_rounded;
-                checkpointDiffText = '${avgCheckpointDiff.toStringAsFixed(1)} kg';
-              } else {
-                checkpointDiffIcon = Icons.trending_flat_rounded;
-                checkpointDiffText = '0.0 kg';
-              }
-            }
+            // -------- Daily (per member)
+            final dailyRows = <({
+            String memberId,
+            String memberName,
+            int entries,
+            String? firstDate,
+            String? lastDate,
+            double? firstWeight,
+            double? lastWeight,
+            double? diff,
+            })>[];
 
-            // ---------------------------
-            // ✅ WEIGHT: Daily trend based on LAST 2 daily entries globally
-            // ---------------------------
-            final allDaily = <({String date, double weight})>[];
+            int dailyMembersWithAny = 0;
+            int dailyEntriesTotal = 0;
+            String? lastWeightUpdated; // global YYYY-MM-DD
+
             for (final mem in members) {
-              final wm = weightMap(mem.id);
+              final wm = weightMap(mem.id); // {YYYY-MM-DD: weight}
+
+              final entries = <({String date, double w})>[];
               for (final kv in wm.entries) {
-                final date = kv.key; // YYYY-MM-DD
+                final d = kv.key;
                 final raw = kv.value;
-                if (raw is num) {
-                  allDaily.add((date: date, weight: raw.toDouble()));
+                if (raw is num) entries.add((date: d, w: raw.toDouble()));
+              }
+
+              if (entries.isNotEmpty) {
+                dailyMembersWithAny++;
+                dailyEntriesTotal += entries.length;
+
+                entries.sort((a, b) => a.date.compareTo(b.date)); // asc
+                final first = entries.first;
+                final last = entries.last;
+
+                // global last updated
+                if (lastWeightUpdated == null || last.date.compareTo(lastWeightUpdated!) > 0) {
+                  lastWeightUpdated = last.date;
                 }
-              }
-            }
-            allDaily.sort((a, b) => b.date.compareTo(a.date));
 
-            double? latestW;
-            String? latestD;
-            double? prevW;
-            String? prevD;
-
-            if (allDaily.isNotEmpty) {
-              latestD = allDaily[0].date;
-              latestW = allDaily[0].weight;
-            }
-            if (allDaily.length >= 2) {
-              prevD = allDaily[1].date;
-              prevW = allDaily[1].weight;
-            }
-
-            final weightDiffDaily = (latestW != null && prevW != null) ? (latestW - prevW) : null;
-
-            IconData? weightTrendIcon;
-            String? weightTrendText;
-
-            if (weightDiffDaily != null) {
-              if (weightDiffDaily > 0) {
-                weightTrendIcon = Icons.trending_up_rounded;
-                weightTrendText = '+${weightDiffDaily.toStringAsFixed(1)} kg';
-              } else if (weightDiffDaily < 0) {
-                weightTrendIcon = Icons.trending_down_rounded;
-                weightTrendText = '${weightDiffDaily.toStringAsFixed(1)} kg';
+                dailyRows.add((
+                memberId: mem.id,
+                memberName: mem.name,
+                entries: entries.length,
+                firstDate: first.date,
+                lastDate: last.date,
+                firstWeight: first.w,
+                lastWeight: last.w,
+                diff: last.w - first.w,
+                ));
               } else {
-                // ✅ avoid confusing "0.0 kg"
-                weightTrendIcon = Icons.trending_flat_rounded;
-                weightTrendText = 'Tiada perubahan';
+                dailyRows.add((
+                memberId: mem.id,
+                memberName: mem.name,
+                entries: 0,
+                firstDate: null,
+                lastDate: null,
+                firstWeight: null,
+                lastWeight: null,
+                diff: null,
+                ));
               }
             }
 
-            final weightFooter = (() {
-              final parts = <String>[
-                'Wajib: Awal $startDone/$nMembers • Akhir $endDone/$nMembers',
-              ];
-
-              if (checkpointDiffText != null) {
-                parts.add('Avg perubahan: $checkpointDiffText');
-              }
-
-              if (latestD != null && prevD != null && weightTrendText != null) {
-                parts.add('Trend harian: $weightTrendText ($latestD vs $prevD)');
-              } else if (latestD != null) {
-                parts.add('Entri harian terbaru: $latestD');
-              } else {
-                parts.add('Tiada rekod harian');
-              }
-
-              return parts.join(' • ');
-            })();
+            // Sort daily: entries desc, then lastDate desc
+            dailyRows.sort((a, b) {
+              final byEntries = b.entries.compareTo(a.entries);
+              if (byEntries != 0) return byEntries;
+              final ad = a.lastDate ?? '';
+              final bd = b.lastDate ?? '';
+              return bd.compareTo(ad);
+            });
 
             // ---------------------------
             // ✅ LEADERBOARD
@@ -468,12 +490,40 @@ class HomePage extends ConsumerWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1200),
                   child: SingleChildScrollView(
-                    padding: Tw.p(Tw.s8),
+                    padding: EdgeInsetsGeometry.only(left: Tw.s8, right: Tw.s8, bottom: Tw.s8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Powered by ',
+                              style: TextStyle(
+                                fontSize: Tw.s2,
+                                color: Theme.of(context).hintColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            InkWell(
+                              onTap: () async {
+                                final uri = Uri.parse('https://fnxsolution.com'); // change URL
+                                final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                if (!ok) debugPrint('Could not launch $uri');
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.asset(
+                                'assets/fnx.png',
+                                height: 100,
+                                width: 100,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ],
+                        ),
                         Text(
-                          'Assalamualaikum, $name 👋',
+                          'Assalamualaikum, Hero 👋',
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                         ),
                         Tw.gap(Tw.s2),
@@ -550,17 +600,15 @@ class HomePage extends ConsumerWidget {
                                 ),
                                 BreezeProgressCard(
                                   title: 'Berat',
-                                  subtitle: weightTrendText == null
-                                      ? 'Tiada lagi trend'
-                                      : '$weightTrendText (terkini)',
+                                  subtitle: lastWeightUpdated == null
+                                      ? 'Belum ada rekod harian'
+                                      : 'Last updated: $lastWeightUpdated',
                                   icon: Icons.monitor_weight_outlined,
                                   onTap: () => context.go('/tracker-weight'),
-                                  footer: (latestD != null && prevD != null)
-                                      ? 'Kemaskini: $latestD'
-                                      : (latestD != null ? 'Kemaskini: $latestD' : 'Isi berat'),
-                                  badgeText: 'Trend',
-                                  trendText: weightTrendText,
-                                  trendIcon: weightTrendIcon,
+                                  badgeText: 'Berat Rekod',
+                                  footer: 'Harian: $dailyMembersWithAny ahli • $dailyEntriesTotal entri',
+                                  trendText: null,
+                                  trendIcon: null,
                                 ),
                               ],
                             );
@@ -622,6 +670,44 @@ class HomePage extends ConsumerWidget {
                             },
                           ),
                         ],
+
+                        Tw.gap(Tw.s10),
+
+                        SectionHeader(
+                          title: 'Berat',
+                          subtitle: 'Pantau berat sepanjang bulan Ramadan.',
+                          icon: Icons.insights_rounded,
+                          trailing: (avgDiff == null)
+                              ? null
+                              : Pill(
+                            text: avgDiff > 0
+                                ? 'Avg +${avgDiff.toStringAsFixed(1)} kg'
+                                : avgDiff < 0
+                                ? 'Avg ${avgDiff.toStringAsFixed(1)} kg'
+                                : 'Avg 0.0 kg',
+                            icon: avgDiff > 0
+                                ? Icons.trending_up_rounded
+                                : avgDiff < 0
+                                ? Icons.trending_down_rounded
+                                : Icons.trending_flat_rounded,
+                          ),
+                        ),
+
+                        Tw.gap(Tw.s3),
+
+                        // ✅ Wajib card
+                        WeightChangeCard(rows: weightRows),
+
+                        Tw.gap(Tw.s4),
+
+                        // ✅ Daily card
+                        WeightDailyCard(
+                          rows: dailyRows,
+                          membersCount: nMembers,
+                          membersWithAny: dailyMembersWithAny,
+                          entriesTotal: dailyEntriesTotal,
+                          lastUpdated: lastWeightUpdated,
+                        ),
 
                         Tw.gap(Tw.s10),
 

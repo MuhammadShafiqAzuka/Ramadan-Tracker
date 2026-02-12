@@ -273,7 +273,7 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
             String tarawihLabel({required int? rakaat, required bool recorded}) {
               if (!recorded) return 'Belum Rekod';
               if (rakaat == 8) return 'Tarawih 8';
-              if (rakaat == 12) return 'Tarawih 12';
+              if (rakaat == 20) return 'Tarawih 20';
               return 'Tak Set';
             }
 
@@ -616,7 +616,7 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                       // -------------------------
                       BreezeSectionHeader(
                         title: 'Tarawih (Hari $selectedDay)',
-                        subtitle: 'Pilih 8 atau 12 rakaat.',
+                        subtitle: 'Pilih 8 atau 20 rakaat.',
                         icon: Icons.nightlight_round,
                         trailing: BreezePill(
                           text: todayTarawihRecorded
@@ -680,7 +680,7 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
 
                             final buttons = <Widget>[
                               button('8 Rakaat', 8),
-                              button('12 Rakaat', 12),
+                              button('20 Rakaat', 20),
                             ];
 
                             if (isNarrow) {

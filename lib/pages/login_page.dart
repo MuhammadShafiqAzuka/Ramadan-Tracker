@@ -61,27 +61,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       subtitle: 'Log masuk ke akaun anda',
 
       // ✅ pinned bottom (outside the card)
-      footer: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Powered by FNX Solution',
-            style: TextStyle(
-              fontSize: 13,
-              color: Theme.of(context).hintColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Image.asset(
-            'assets/fnx.png',
-            height: 100,
-            width: 100,
-            fit: BoxFit.contain,
-          ),
-        ],
+      footer:  InkWell(
+        onTap: () async {
+          final uri = Uri.parse('https://fnxsolution.com'); // change URL
+          final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          if (!ok) debugPrint('Could not launch $uri');
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(
+          'assets/fnx.png',
+          height: 150,
+          width: 150,
+          fit: BoxFit.contain,
+        ),
       ),
-
       child: Form(
         key: _formKey,
         child: Column(

@@ -133,8 +133,8 @@ class FastingService {
     required int rakaat, // 8 or 12
   }) async {
     _validateDay(day);
-    if (rakaat != 8 && rakaat != 12) {
-      throw ArgumentError('rakaat must be 8 or 12');
+    if (rakaat != 8 && rakaat != 20) {
+      throw ArgumentError('rakaat must be 8 or 20');
     }
 
     await _yearRef(uid, year).set(
