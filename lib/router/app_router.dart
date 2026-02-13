@@ -19,10 +19,16 @@ import '../pages/dashboard_page.dart';
 final goRouterProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(firebaseAuthProvider);
 
+  // ✅ important: wait for redirect result to be applied
+  final authInit = ref.watch(authInitProvider);
+
   return GoRouter(
     initialLocation: '/login',
     refreshListenable: GoRouterRefreshStream(auth.authStateChanges()),
     redirect: (context, state) {
+      // ✅ Don't redirect until redirect sign-in has been processed
+      if (authInit.isLoading) return null;
+
       final isLoggedIn = auth.currentUser != null;
       final path = state.uri.path;
 
@@ -40,30 +46,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
-
-      GoRoute(
-        path: '/signup-solo',
-        builder: (_, __) => const SignupPage(planType: PlanType.solo),
-      ),
-      GoRoute(
-        path: '/signup-five',
-        builder: (_, __) => const SignupPage(planType: PlanType.five),
-      ),
-      GoRoute(
-        path: '/signup-nine',
-        builder: (_, __) => const SignupPage(planType: PlanType.nine),
-      ),
-
-      GoRoute(
-        path: '/forgot-password',
-        builder: (_, __) => const ForgotPasswordPage(),
-      ),
-
-      GoRoute(
-        path: '/dashboard',
-        builder: (_, __) => const DashboardPage(),
-      ),
-
+      GoRoute(path: '/signup-solo', builder: (_, __) => const SignupPage(planType: PlanType.solo)),
+      GoRoute(path: '/signup-five', builder: (_, __) => const SignupPage(planType: PlanType.five)),
+      GoRoute(path: '/signup-nine', builder: (_, __) => const SignupPage(planType: PlanType.nine)),
+      GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordPage()),
+      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardPage()),
       GoRoute(path: '/home', builder: (_, __) => const HomePage()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),
       GoRoute(path: '/tracker-fasting', builder: (_, __) => const FastingTrackerPage()),
@@ -72,6 +59,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/tracker-weight', builder: (_, __) => const WeightTrackerPage()),
     ],
   );
+});
+
+final authInitProvider = FutureProvider<void>((ref) async {
+  final auth = ref.read(firebaseAuthProvider);
+  try {
+    // ✅ completes pending Google redirect sign-in (web)
+    await auth.getRedirectResult();
+  } catch (_) {
+    // ignore if no redirect pending
+  }
 });
 
 class GoRouterRefreshStream extends ChangeNotifier {

@@ -29,101 +29,106 @@ class AuthCard extends StatelessWidget {
     final bg = isDark ? Tw.darkBg : Tw.slate50;
     final cardBg = isDark ? Tw.darkCard : Tw.white;
     final border = isDark ? Tw.darkBorder : Tw.slate200;
+    final isPhone = MediaQuery.of(context).size.width < 480;
 
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // ✅ MAIN (card area) scrolls if needed
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 440),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: Tw.br(18),
-                        border: Border.all(color: border),
-                        boxShadow: isDark ? const [] : Tw.shadowMd,
-                      ),
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Top row: brand (left) + theme toggle (right)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              if (brand != null)
-                                SizedBox(
-                                  height: 34,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: brand,
-                                  ),
-                                )
-                              else
-                                const SizedBox(height: 34),
-
-                              const Spacer(),
-
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: border),
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withOpacity(isDark ? 0.12 : 0.06),
+            // ✅ Center card (not affected by footer)
+            Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(18, 18, 18, isPhone ? 50 : 50),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: Tw.br(18),
+                      border: Border.all(color: border),
+                      boxShadow: isDark ? const [] : Tw.shadowMd,
+                    ),
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (brand != null)
+                              SizedBox(
+                                height: 34,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: brand,
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                child: const ThemeToggle(),
+                              )
+                            else
+                              const SizedBox(height: 34),
+
+                            const Spacer(),
+
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: border),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(isDark ? 0.12 : 0.06),
                               ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style: Tw.title.copyWith(
-                              fontSize: 22,
-                              color: isDark ? Tw.darkText : Tw.slate900,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              child: const ThemeToggle(),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            subtitle,
-                            textAlign: TextAlign.center,
-                            style: Tw.subtitle.copyWith(
-                              fontSize: 13,
-                              color: isDark ? Tw.darkSubtext : Tw.slate700,
-                            ),
-                          ),
+                          ],
+                        ),
 
-                          const SizedBox(height: 22),
-                          Divider(color: border, height: 1),
-                          const SizedBox(height: 22),
+                        const SizedBox(height: 16),
 
-                          child,
-                        ],
-                      ),
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: Tw.title.copyWith(
+                            fontSize: 22,
+                            color: isDark ? Tw.darkText : Tw.slate900,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          subtitle,
+                          textAlign: TextAlign.center,
+                          style: Tw.subtitle.copyWith(
+                            fontSize: 13,
+                            color: isDark ? Tw.darkSubtext : Tw.slate700,
+                          ),
+                        ),
+
+                        const SizedBox(height: 22),
+                        Divider(color: border, height: 1),
+                        const SizedBox(height: 22),
+
+                        child,
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
 
-            // ✅ FOOTER ALWAYS AT BOTTOM
             if (footer != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: footer!,
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Center(child: footer!),
+                  ),
+                ),
               ),
           ],
         ),

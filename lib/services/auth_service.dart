@@ -18,6 +18,20 @@ class AuthService {
     }
   }
 
+  // ✅ WEB: Google login
+  Future<void> signInWithGoogleWeb() async {
+    final provider = GoogleAuthProvider()
+      ..setCustomParameters({'prompt': 'select_account'});
+
+    await _auth.signInWithRedirect(provider);
+  }
+
+  Future<void> completeGoogleRedirectIfAny() async {
+    try {
+      await _auth.getRedirectResult();
+    } catch (_) {}
+  }
+
   Future<UserCredential> register({
     required String email,
     required String password,
