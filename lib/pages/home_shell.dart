@@ -481,6 +481,8 @@ class HomePage extends ConsumerWidget {
                     child: const ThemeToggle(),
                   ),
 
+                  SizedBox(width: 10),
+
                   // 👇 This one goes to Settings page
                   Container(
                     decoration: BoxDecoration(

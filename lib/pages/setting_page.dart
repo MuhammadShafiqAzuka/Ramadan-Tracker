@@ -117,11 +117,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 child: const ThemeToggle(),
               ),
+              SizedBox(width: 10),
+              TextButton(
+                onPressed: () async => context.go("/home"),
+                child: const Text('Kembali'),
+              ),
             ],
           ),
           body: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
+              constraints: const BoxConstraints(maxWidth: 700),
               child: SingleChildScrollView(
                 padding: Tw.p(Tw.s8),
                 child: Form(
@@ -250,12 +255,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                             : const Text('Simpan'),
-                      ),
-
-                      Tw.gap(Tw.s4),
-                      OutlinedButton(
-                        onPressed: () => context.pop(true),
-                        child: const Text('Kembali'),
                       ),
                     ],
                   ),
