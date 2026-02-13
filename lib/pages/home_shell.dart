@@ -470,7 +470,7 @@ class HomePage extends ConsumerWidget {
 
             return Scaffold(
               appBar: AppBar(
-                title: Text('Ramadan Hero • ${profile.planType.title} • Tahun $year'),
+                title: Text('Ramadan Hero • ${profile.planType.title}'),
                 actions: [
                   Container(
                     decoration: BoxDecoration(
@@ -546,7 +546,7 @@ class HomePage extends ConsumerWidget {
                         ),
                         Tw.gap(Tw.s2),
                         Text(
-                          'Pilih tracker untuk kemaskini progres Ramadan $year',
+                          'Pilih tracker untuk kemaskini progres Ramadan',
                           style: Tw.subtitle.copyWith(
                             color: Theme.of(context).brightness == Brightness.dark ? Tw.darkSubtext : Tw.slate700,
                           ),
