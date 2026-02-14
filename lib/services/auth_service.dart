@@ -48,9 +48,17 @@ class AuthService {
 
   Future<void> sendResetEmail({required String email}) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      final actionCodeSettings = ActionCodeSettings(
+        url: 'https://ramadanhero.my/#/login',
+        handleCodeInApp: false,
+      );
+
+      await _auth.sendPasswordResetEmail(
+        email: email,
+        actionCodeSettings: actionCodeSettings,
+      );
     } on FirebaseAuthException catch (e) {
-      throw _friendlyAuthError(e);
+      throw Exception(_friendlyAuthError(e));
     }
   }
 

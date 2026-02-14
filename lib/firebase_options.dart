@@ -53,11 +53,14 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAB6IqRQMtkGvlAuaSImz1S6VE-gH7QAnU',
-    appId: '1:1053950406218:web:ee66045ffca2b919d8c0b3',
-    messagingSenderId: '1053950406218',
-    projectId: 'ramadan-hero',
-    authDomain: 'ramadan-hero.firebaseapp.com',
-    storageBucket: 'ramadan-hero.firebasestorage.app',
+    apiKey: 'AIzaSyCf9HQVI3nfo-GBTpJa_qJlcJgSo3g0bSo',
+    appId: '1:458713837226:web:22d53227ff99119a81aad3',
+    messagingSenderId: '458713837226',
+    projectId: 'kbat-skkru',
+    authDomain: 'kbat-skkru.firebaseapp.com',
+    databaseURL: 'https://kbat-skkru-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'kbat-skkru.firebasestorage.app',
+    measurementId: 'G-9TCS5YGE76',
   );
+
 }

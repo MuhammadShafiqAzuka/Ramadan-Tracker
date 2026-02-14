@@ -38,11 +38,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool loading = false;
   String? error;
 
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() => ref.read(authServiceProvider).completeGoogleRedirectIfAny());
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   Future.microtask(() => ref.read(authServiceProvider).completeGoogleRedirectIfAny());
+  // }
 
   @override
   void dispose() {
