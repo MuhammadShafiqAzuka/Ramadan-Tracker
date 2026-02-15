@@ -198,6 +198,44 @@ class HomePage extends ConsumerWidget {
               return best;
             }
 
+            ({String memberName, int juz, DateTime at})? latestJuzHousehold() {
+              ({String memberName, int juz, DateTime at})? best;
+
+              for (final mem in members) {
+                final m = membersData[mem.id] as Map<String, dynamic>?;
+                final jm = (m?['juz'] as Map<String, dynamic>?) ?? {};
+
+                for (final entry in jm.entries) {
+                  final key = entry.key; // "1".."30"
+                  final v = entry.value;
+
+                  bool done = false;
+                  Timestamp? ts;
+
+                  if (v == true) {
+                    // old data: no timestamp => cannot be "recent"
+                    continue;
+                  } else if (v is Map) {
+                    done = v['done'] == true;
+                    final rawTs = v['lastAt'];
+                    if (rawTs is Timestamp) ts = rawTs;
+                  }
+
+                  if (!done || ts == null) continue;
+
+                  final at = ts.toDate();
+                  final juzNo = int.tryParse(key) ?? 0;
+                  if (juzNo < 1 || juzNo > 30) continue;
+
+                  if (best == null || at.isAfter(best.at)) {
+                    best = (memberName: mem.name, juz: juzNo, at: at);
+                  }
+                }
+              }
+
+              return best;
+            }
+
             int memberSurahScore(String memberId) {
               final sm = surahMap(memberId);
               int unique = 0;
@@ -212,7 +250,12 @@ class HomePage extends ConsumerWidget {
             final latestSurah = latestSurahHousehold();
             final latestSurahText = latestSurah == null
                 ? 'Belum ada rekod'
-                : 'Terbaru: Surah ${latestSurah.name} • ${formatTime12h(latestSurah.at)} daripada ${latestSurah.memberName}';
+                : 'Terbaru: Surah ${latestSurah.name} • ${formatTime12h(latestSurah.at)} oleh ${latestSurah.memberName}';
+
+            final latestJuz = latestJuzHousehold();
+            final latestJuzText = latestJuz == null
+                ? 'Belum ada rekod terkini'
+                : 'Terbaru: Juzuk ${latestJuz.juz} • ${formatTime12h(latestJuz.at)} oleh ${latestJuz.memberName}';
 
             // Household dashboard stats
             double puasaScoreHousehold = 0;
@@ -601,7 +644,7 @@ class HomePage extends ConsumerWidget {
                                   subtitle: '${(juzPct * 100).round()}% • $juzDoneHousehold / $juzMaxHousehold',
                                   icon: Icons.menu_book_outlined,
                                   onTap: () => context.go('/tracker-juz'),
-                                  footer: 'Target: 30 juzuk setiap ahli',
+                                  footer: latestJuzText,
                                   badgeText: '30 Juzuk setiap ahli',
                                   progress: juzPct,
                                   valueText: '${(juzPct * 100).round()}%',

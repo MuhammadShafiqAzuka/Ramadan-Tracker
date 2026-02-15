@@ -126,6 +126,7 @@ class BreezeProgressBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final hint = Theme.of(context).hintColor;
 
     return BreezeCard(
       child: Column(
@@ -133,15 +134,45 @@ class BreezeProgressBlock extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: Tw.s2)),
-              const Spacer(),
-              Text(rightText, style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary, fontSize: Tw.s2)),
+              // ✅ allow title to shrink + ellipsis
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: Tw.s2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // ✅ keep rightText visible, but safe
+              Text(
+                rightText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: cs.primary,
+                  fontSize: Tw.s2,
+                ),
+              ),
             ],
           ),
+
           if (subtitle != null) ...[
             const SizedBox(height: 6),
-            Text(subtitle!, style: TextStyle(fontSize: Tw.s2, color: Theme.of(context).hintColor)),
+            Text(
+              subtitle!,
+              maxLines: 2, // ✅ optional: keep it neat
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: Tw.s2, color: hint),
+            ),
           ],
+
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
@@ -175,18 +206,46 @@ class BreezeMemberSelector extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          const Text('Ahli', style: TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(
+            width: 44, // keep it tight on small screens
+            child: Text('Ahli', style: TextStyle(fontWeight: FontWeight.w900)),
+          ),
           const SizedBox(width: 12),
+
           Expanded(
             child: DropdownButtonFormField<String>(
               value: value,
+              isExpanded: true, // ✅ critical to prevent overflow
               decoration: const InputDecoration(
                 labelText: 'Pilih ahli keluarga',
               ),
               items: [
                 for (final mem in members)
-                  DropdownMenuItem(value: mem.id, child: Text(mem.name)),
+                  DropdownMenuItem(
+                    value: mem.id,
+                    child: Text(
+                      mem.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis, // ✅ truncate in menu
+                      softWrap: false,
+                    ),
+                  ),
               ],
+              selectedItemBuilder: (context) {
+                // ✅ truncate the currently selected display too
+                return [
+                  for (final mem in members)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        mem.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
+                      ),
+                    ),
+                ];
+              },
               onChanged: onChanged,
             ),
           ),
@@ -1778,11 +1837,6 @@ class WeightDailyCard extends StatelessWidget {
               Pill(
                 text: '$entriesTotal entri',
                 icon: Icons.list_alt_rounded,
-              ),
-              const Spacer(),
-              Text(
-                lastUpdated == null ? '—' : 'Updated $lastUpdated',
-                style: TextStyle(fontSize: Tw.s2, color: hint, fontWeight: FontWeight.w700),
               ),
             ],
           ),

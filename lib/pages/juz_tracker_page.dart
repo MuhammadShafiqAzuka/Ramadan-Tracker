@@ -58,7 +58,11 @@ class _JuzTrackerPageState extends ConsumerState<JuzTrackerPage> {
             bool isDone(String memberId, int juz) {
               final m = membersData[memberId] as Map<String, dynamic>?;
               final juzMap = m?['juz'] as Map<String, dynamic>?;
-              return juzMap?['$juz'] == true;
+
+              final node = juzMap?['$juz'];
+              if (node == true) return true; // ✅ old data
+              if (node is Map) return node['done'] == true; // ✅ new data
+              return false;
             }
 
             int countDone(String memberId) {

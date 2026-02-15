@@ -34,7 +34,12 @@ class QuranService {
       'members': {
         memberId: {
           'name': memberName,
-          'juz': {'$juz': value},
+          'juz': {
+            '$juz': {
+              'done': value,
+              'lastAt': FieldValue.serverTimestamp(),
+            }
+          },
         }
       }
     }, SetOptions(merge: true));
