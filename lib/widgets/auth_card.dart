@@ -10,7 +10,7 @@ class AuthCard extends StatelessWidget {
   /// Optional brand/logo widget (e.g. app icon)
   final Widget? brand;
 
-  /// ✅ Optional footer at the bottom of the page (outside card)
+  /// ✅ Optional footer below the card (outside container)
   final Widget? footer;
 
   const AuthCard({
@@ -29,20 +29,19 @@ class AuthCard extends StatelessWidget {
     final bg = isDark ? Tw.darkBg : Tw.slate50;
     final cardBg = isDark ? Tw.darkCard : Tw.white;
     final border = isDark ? Tw.darkBorder : Tw.slate200;
-    final isPhone = MediaQuery.of(context).size.width < 480;
 
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
-        child: Stack(
-          children: [
-            // ✅ Center card (not affected by footer)
-            Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(18, 18, 18, isPhone ? 50 : 50),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 440),
-                  child: Container(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(18),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
                     decoration: BoxDecoration(
                       color: cardBg,
                       borderRadius: Tw.br(18),
@@ -79,12 +78,12 @@ class AuthCard extends StatelessWidget {
                                     .primary
                                     .withOpacity(isDark ? 0.12 : 0.06),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding:
+                              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               child: const ThemeToggle(),
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 16),
 
                         Text(
@@ -113,24 +112,16 @@ class AuthCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
+
+                  /// ✅ Footer below the card
+                  if (footer != null) ...[
+                    const SizedBox(height: 14),
+                    footer!,
+                  ],
+                ],
               ),
             ),
-
-            if (footer != null)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Center(child: footer!),
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );

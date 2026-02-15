@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_service.dart';
 import '../utils/tw.dart';
+import '../widgets/auth_card.dart';
 import '../widgets/theme_toggle.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -26,23 +27,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final Uri signupUrlFamily5 = Uri.parse('https://toyyibpay.com/Ramadan-Hero-Family5');
   final Uri signupUrlFamily9 = Uri.parse('https://toyyibpay.com/Ramadan-Hero-Family9');
 
-  Future<void> _openSignup(Uri url) async {
-    final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
-    if (!ok) throw 'Could not launch $url';
-  }
-
-  Future<void> _openSignupRoute(String route) async {
-    context.go('/$route');
-  }
-
   bool loading = false;
   String? error;
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   Future.microtask(() => ref.read(authServiceProvider).completeGoogleRedirectIfAny());
-  // }
 
   @override
   void dispose() {
@@ -69,6 +55,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
       title: 'Log masuk',
       subtitle: 'Log masuk ke akaun anda',
+      footer: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Text.rich(
+          TextSpan(
+            text: 'Jika berminat untuk akses Ramadan Hero, layari ',
+            children: [
+              WidgetSpan(
+                child: GestureDetector(
+                  onTap: () async {
+                    final uri = Uri.parse('https://www.fnxsolution.com/ramadan-hero');
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  },
+                  child: Text(
+                    'www.fnxsolution.com/ramadan-hero',
+                    style: TextStyle(
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            height: 1.3,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Tw.darkSubtext
+                : Tw.slate700,
+          ),
+        ),
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -169,27 +188,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
             ),
 
-            // Tw.gap(Tw.s4),
-            //
-            // OutlinedButton.icon(
-            //   icon: const Icon(Icons.login),
-            //   label: const Text('Log masuk dengan Google'),
-            //   onPressed: loading ? null : () async {
-            //     setState(() { error = null; loading = true; });
-            //     try {
-            //       await auth.signInWithGoogleWeb();
-            //       // redirect happens; no need to set loading=false
-            //     } catch (e) {
-            //       if (mounted) setState(() { error = e.toString(); loading = false; });
-            //     }
-            //   },
-            // ),
-
             // ✅ FNX logo neatly inside card
             Tw.gap(Tw.s6),
             _PoweredByLogo(
               onTap: () async {
-                final uri = Uri.parse('https://fnxsolution.com');
+                final uri = Uri.parse('https://www.fnxsolution.com/ramadan-hero');
                 final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
                 if (!ok) debugPrint('Could not launch $uri');
               },
@@ -233,118 +236,6 @@ class _PoweredByLogo extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// ✅ Clean AuthCard (no footer, no Stack)
-class AuthCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Widget child;
-
-  /// Optional brand/logo widget (e.g. app icon)
-  final Widget? brand;
-
-  const AuthCard({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.child,
-    this.brand,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final bg = isDark ? Tw.darkBg : Tw.slate50;
-    final cardBg = isDark ? Tw.darkCard : Tw.white;
-    final border = isDark ? Tw.darkBorder : Tw.slate200;
-
-    return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(18),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: Tw.br(18),
-                  border: Border.all(color: border),
-                  boxShadow: isDark ? const [] : Tw.shadowMd,
-                ),
-                padding: const EdgeInsets.all(28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        if (brand != null)
-                          SizedBox(
-                            height: 34,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: brand,
-                            ),
-                          )
-                        else
-                          const SizedBox(height: 34),
-
-                        const Spacer(),
-
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: border),
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withOpacity(isDark ? 0.12 : 0.06),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          child: const ThemeToggle(),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: Tw.title.copyWith(
-                        fontSize: 22,
-                        color: isDark ? Tw.darkText : Tw.slate900,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      textAlign: TextAlign.center,
-                      style: Tw.subtitle.copyWith(
-                        fontSize: 13,
-                        color: isDark ? Tw.darkSubtext : Tw.slate700,
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-                    Divider(color: border, height: 1),
-                    const SizedBox(height: 22),
-
-                    child,
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
