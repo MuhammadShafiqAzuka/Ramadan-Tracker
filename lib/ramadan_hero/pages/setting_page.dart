@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
+import '../../common/utils/tw.dart';
+import '../../common/widgets/theme_toggle.dart';
 import '../models/plan_type.dart';
 import '../providers/profile_provider.dart';
 import '../services/user_profile_service.dart';
-import '../utils/tw.dart';
-import '../widgets/theme_toggle.dart';
+
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});

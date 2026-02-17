@@ -1,10 +1,9 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ramadhan_hero/widgets/theme_toggle.dart';
-import '../providers/home_reminder.dart';
+import 'package:ramadhan_hero/common/widgets/theme_toggle.dart';
+import '../../ramadan_hero/providers/home_reminder.dart';
 import '../utils/date_key.dart';
 import '../utils/leaderboard_rank.dart';
 import '../utils/tw.dart';
@@ -2205,17 +2204,6 @@ class FidyahPaymentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(Icons.payments_rounded, color: cs.primary),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text('Fidyah', style: TextStyle(fontWeight: FontWeight.w900)),
-              ),
-              BreezePill(text: '$paidAll / $totalAll dibayar', icon: Icons.verified_rounded),
-            ],
-          ),
-          const SizedBox(height: 10),
           Wrap(
             spacing: 10,
             runSpacing: 10,

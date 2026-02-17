@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ramadhan_hero/models/plan_type.dart';
-import 'package:ramadhan_hero/widgets/breeze_ui.dart';
-
+import '../../common/utils/date_key.dart';
+import '../../common/utils/tw.dart';
+import '../../common/widgets/breeze_ui.dart';
+import '../models/plan_type.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/auth_service.dart';
 import '../services/weight_service.dart';
-import '../utils/date_key.dart';
-import '../utils/tw.dart';
 
 class WeightTrackerPage extends ConsumerStatefulWidget {
   const WeightTrackerPage({super.key, this.year});

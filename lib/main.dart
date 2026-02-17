@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:ramadhan_hero/utils/app_theme.dart';
+import 'package:ramadhan_hero/ramadan_hero/providers/theme_provider.dart';
+import 'package:ramadhan_hero/ramadan_hero/router/app_router.dart';
+import 'common/utils/app_theme.dart';
 import 'firebase_options.dart';
-import 'router/app_router.dart';
-import 'providers/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

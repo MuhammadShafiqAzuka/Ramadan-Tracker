@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ramadhan_hero/models/plan_type.dart';
-
+import '../../common/utils/tw.dart';
+import '../../common/widgets/breeze_ui.dart';
+import '../models/plan_type.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/auth_service.dart';
 import '../services/quran_service.dart';
-import '../utils/tw.dart';
-import '../widgets/breeze_ui.dart';
 
 class JuzTrackerPage extends ConsumerStatefulWidget {
   const JuzTrackerPage({super.key, this.year});
@@ -95,25 +94,6 @@ class _JuzTrackerPageState extends ConsumerState<JuzTrackerPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // BreezeSectionHeader(
-                    //   title: 'Keseluruhan',
-                    //   subtitle: 'Jejaki 30 juz completion setiap ahli isi rumah',
-                    //   icon: Icons.dashboard_rounded,
-                    //   trailing: BreezePill(
-                    //     text: '${(overall * 100).round()}%  •  $doneCells / $totalCells',
-                    //     icon: Icons.menu_book_outlined,
-                    //   ),
-                    // ),
-                    // Tw.gap(Tw.s3),
-                    // BreezeProgressBlock(
-                    //   title: 'Progress Isi Rumah',
-                    //   value: overall,
-                    //   rightText: '${(overall * 100).round()}%',
-                    //   subtitle: '$doneCells ticks out of $totalCells total',
-                    // ),
-                    //
-                    // Tw.gap(Tw.s5),
-
                     BreezeSectionHeader(
                       title: 'Ahli',
                       subtitle: 'Pilih ahli keluarga yang anda mahu kemas kini',

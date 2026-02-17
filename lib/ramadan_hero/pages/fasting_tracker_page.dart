@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../common/utils/tw.dart';
+import '../../common/widgets/breeze_ui.dart';
+import '../../common/widgets/not_fast_reason.dart';
 import '../models/plan_type.dart';
 import '../models/user_profile.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/auth_service.dart';
 import '../services/fasting_service.dart';
-import '../utils/tw.dart';
-import '../widgets/breeze_ui.dart';
-import '../widgets/not_fast_reason.dart';
 
 class FastingTrackerPage extends ConsumerStatefulWidget {
   const FastingTrackerPage({super.key, this.year});

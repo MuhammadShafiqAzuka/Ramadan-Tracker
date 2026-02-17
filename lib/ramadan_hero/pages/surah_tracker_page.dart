@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ramadhan_hero/models/plan_type.dart';
+import '../../common/utils/date_key.dart';
+import '../../common/utils/surah_list.dart';
+import '../../common/utils/tw.dart';
+import '../../common/widgets/breeze_ui.dart';
+import '../models/plan_type.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/auth_service.dart';
 import '../services/surah_service.dart';
-import '../utils/surah_list.dart';
-import '../utils/tw.dart';
-import '../utils/date_key.dart';
-import '../widgets/breeze_ui.dart';
 
 class SurahTrackerPage extends ConsumerStatefulWidget {
   const SurahTrackerPage({super.key, this.year});

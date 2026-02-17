@@ -2,12 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ramadhan_hero/pages/setting_page.dart';
-
 import '../models/plan_type.dart';
 import '../pages/fasting_tracker_page.dart';
 import '../pages/home_shell.dart';
 import '../pages/juz_tracker_page.dart';
+import '../pages/setting_page.dart';
 import '../pages/surah_tracker_page.dart';
 import '../pages/weight_tracker_page.dart';
 import '../providers/auth_provider.dart';

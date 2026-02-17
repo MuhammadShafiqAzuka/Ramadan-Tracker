@@ -2,12 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
+import '../../common/utils/tw.dart';
+import '../../common/widgets/auth_card.dart';
 import '../models/plan_type.dart';
 import '../services/auth_service.dart';
 import '../services/user_profile_service.dart';
-import '../utils/tw.dart';
-import '../widgets/auth_card.dart';
+
 
 class SignupPage extends ConsumerStatefulWidget {
   final PlanType planType;
