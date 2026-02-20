@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:intl/intl.dart';
+import 'package:ramadhan_hero/ramadan_hero/common/utils/app_theme.dart';
 import 'package:ramadhan_hero/ramadan_hero/providers/theme_provider.dart';
 import 'package:ramadhan_hero/ramadan_hero/router/app_router.dart';
-import 'common/utils/app_theme.dart';
 import 'firebase_options.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Intl.defaultLocale = 'ms_MY';
+  await initializeDateFormatting('ms_MY', null);
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

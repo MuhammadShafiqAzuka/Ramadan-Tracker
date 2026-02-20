@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../common/utils/tw.dart';
-import '../../common/widgets/breeze_ui.dart';
+import '../common/utils/tw.dart';
+import '../common/widgets/breeze_ui.dart';
 import '../models/plan_type.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/profile_provider.dart';

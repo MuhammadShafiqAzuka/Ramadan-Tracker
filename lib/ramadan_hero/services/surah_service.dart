@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../common/utils/surah_list.dart';
+import '../common/utils/surah_list.dart';
 import 'user_profile_service.dart';
 
 final surahServiceProvider = Provider<SurahService>((ref) {

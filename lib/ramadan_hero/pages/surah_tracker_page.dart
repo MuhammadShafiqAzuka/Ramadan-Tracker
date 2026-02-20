@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../common/utils/date_key.dart';
-import '../../common/utils/surah_list.dart';
-import '../../common/utils/tw.dart';
-import '../../common/widgets/breeze_ui.dart';
+import '../common/utils/date_key.dart';
+import '../common/utils/surah_list.dart';
+import '../common/utils/tw.dart';
+import '../common/widgets/breeze_ui.dart';
+import '../common/widgets/ramadan_cal.dart';
 import '../models/plan_type.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/profile_provider.dart';
+import '../providers/ramadan_cal_provider.dart';
 import '../services/auth_service.dart';
 import '../services/surah_service.dart';
 
@@ -22,10 +24,14 @@ class _SurahTrackerPageState extends ConsumerState<SurahTrackerPage> {
   String? selectedMemberId;
   String q = '';
   int get _year => widget.year ?? DateTime.now().year;
+  int selectedDay = 1;
+  bool _autoDayApplied = false;
+  int _lastAutoYear = -1;
 
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
+    final calendarAsync = ref.watch(ramadhanCalendarProvider(_year));
 
     return profileAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -50,7 +56,39 @@ class _SurahTrackerPageState extends ConsumerState<SurahTrackerPage> {
 
         final yearAsync = ref.watch(ramadhanYearProvider((uid: profile.uid, year: _year)));
         final surahSvc = ref.read(surahServiceProvider);
-        final today = isoDayKey(DateTime.now());
+        // -------------------------
+        // RAMADAN CAL HELPERS (Puasa)
+        // -------------------------
+        final calConfig = calendarAsync.asData?.value;
+        final maxDays = calConfig?.days ?? 30;
+
+        final cal = (calConfig == null)
+            ? null
+            : RamadhanCalendar(startDate: calConfig.startDate, days: calConfig.days);
+
+        // Apply ONLY when config exists
+        if (calConfig != null && (!_autoDayApplied || _lastAutoYear != _year)) {
+          _lastAutoYear = _year;
+
+          final auto = cal!.autoDayFor(DateTime.now());
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() {
+              selectedDay = auto.clamp(1, maxDays);
+              _autoDayApplied = true; // ✅ move inside setState AFTER applying
+            });
+          });
+        }
+
+        // Keep your safety clamp (but use config days if available)
+        if (selectedDay < 1) selectedDay = 1;
+        if (selectedDay > maxDays) selectedDay = maxDays;
+
+        // Now use cal for UI labels like:
+        final selectedDateText = (cal == null)
+            ? 'Hari $selectedDay'
+            : cal.fullLabel(selectedDay);
 
         return yearAsync.when(
           loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -68,7 +106,7 @@ class _SurahTrackerPageState extends ConsumerState<SurahTrackerPage> {
               final surahMap = m?['surah'] as Map<String, dynamic>?;
               final surahNode = surahMap?['$surahNo'] as Map<String, dynamic>?;
               final dates = (surahNode?['dateRecited'] as List?)?.cast<String>() ?? <String>[];
-              return dates.contains(today);
+              return dates.contains(selectedDateText);
             }
 
             int timesRecited(String memberId, int surahNo) {
@@ -105,7 +143,7 @@ class _SurahTrackerPageState extends ConsumerState<SurahTrackerPage> {
                       title: 'Setup',
                       subtitle: 'Pilih ahli dan cari surah',
                       icon: Icons.tune_rounded,
-                      trailing: BreezePill(text: 'Today: $today', icon: Icons.today_rounded),
+                      trailing: BreezePill(text: selectedDateText, icon: Icons.today_rounded),
                     ),
                     Tw.gap(Tw.s3),
 
@@ -173,7 +211,7 @@ class _SurahTrackerPageState extends ConsumerState<SurahTrackerPage> {
                                   memberId: mem.id,
                                   memberName: mem.name,
                                   surah: no,
-                                  isoDate: today,
+                                  isoDate: selectedDateText,
                                   value: !doneToday,
                                 );
                               },

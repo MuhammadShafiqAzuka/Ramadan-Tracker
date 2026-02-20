@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../common/utils/tw.dart';
-import '../../common/widgets/auth_card.dart';
+import '../common/utils/tw.dart';
+import '../common/widgets/auth_card.dart';
 import '../services/auth_service.dart';
 
 

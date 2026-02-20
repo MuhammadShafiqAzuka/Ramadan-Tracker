@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../common/utils/tw.dart';
-import '../../common/widgets/breeze_ui.dart';
-import '../../common/widgets/not_fast_reason.dart';
+import '../common/utils/tw.dart';
+import '../common/widgets/breeze_ui.dart';
+import '../common/widgets/not_fast_reason.dart';
+import '../common/widgets/ramadan_cal.dart';
 import '../models/plan_type.dart';
 import '../models/user_profile.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/profile_provider.dart';
+import '../providers/ramadan_cal_provider.dart';
 import '../services/auth_service.dart';
 import '../services/fasting_service.dart';
 
@@ -22,10 +23,9 @@ class FastingTrackerPage extends ConsumerStatefulWidget {
 class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
   String? selectedMemberId;
   int selectedDay = 1;
-
+  bool _autoDayApplied = false;
+  int _lastAutoYear = -1;
   int get _year => widget.year ?? DateTime.now().year;
-
-  // ✅ Achievement scoring (same as your first UI)
   // per day max = 5 solat + 1 puasa = 6
   static const double _maxPerDay = 6.0;
   static const double _maxPerMonth = 30.0 * _maxPerDay; // 180
@@ -41,6 +41,7 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
+    final calendarAsync = ref.watch(ramadhanCalendarProvider(_year));
 
     return profileAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -60,9 +61,39 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
           loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
           error: (e, _) => Scaffold(body: Center(child: Text('Failed to load: $e'))),
           data: (data) {
-            // keep selectedDay valid
+            // -------------------------
+            // RAMADAN CAL HELPERS (Puasa)
+            // -------------------------
+            final calConfig = calendarAsync.asData?.value;
+            final maxDays = calConfig?.days ?? 30;
+
+            final cal = (calConfig == null)
+                ? null
+                : RamadhanCalendar(startDate: calConfig.startDate, days: calConfig.days);
+
+            // Apply ONLY when config exists
+            if (calConfig != null && (!_autoDayApplied || _lastAutoYear != _year)) {
+              _lastAutoYear = _year;
+
+              final auto = cal!.autoDayFor(DateTime.now());
+
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                setState(() {
+                  selectedDay = auto.clamp(1, maxDays);
+                  _autoDayApplied = true; // ✅ move inside setState AFTER applying
+                });
+              });
+            }
+
+            // Keep your safety clamp (but use config days if available)
             if (selectedDay < 1) selectedDay = 1;
-            if (selectedDay > 30) selectedDay = 30;
+            if (selectedDay > maxDays) selectedDay = maxDays;
+
+            // Now use cal for UI labels like:
+            final selectedDateText = (cal == null)
+                ? 'Hari $selectedDay'
+                : cal.fullLabel(selectedDay);
 
             final membersData = (data?['members'] as Map<String, dynamic>?) ?? {};
 
@@ -373,9 +404,12 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                       BreezeSectionHeader(
                         title: 'Ringkasan Hari',
                         subtitle:
-                        'Semua rekod untuk Hari $selectedDay (Puasa, Solat, Tarawih, Sedekah, Sahur)',
+                        'Semua rekod untuk $selectedDateText (Puasa, Solat, Tarawih, Sedekah, Sahur)',
                         icon: Icons.dashboard_rounded,
-                        trailing: BreezePill(text: 'Hari $selectedDay', icon: Icons.today_rounded),
+                        trailing: BreezePill(
+                          text: selectedDateText,
+                          icon: Icons.today_rounded,
+                        ),
                       ),
                       Tw.gap(Tw.s3),
                       BreezeCard(
@@ -440,7 +474,7 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                       // -------------------------
                       BreezeSectionHeader(
                         title: 'Puasa',
-                        subtitle: 'Pilih Hari (grid) dan rekod status puasa.',
+                        subtitle: 'Pilih Hari dan rekod status puasa.',
                         icon: Icons.calendar_month_rounded,
                         trailing: BreezePill(text: 'Hari $selectedDay', icon: Icons.today_rounded),
                       ),
@@ -453,6 +487,8 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                         onSelectDay: (d) => setState(() => selectedDay = d),
                         fastingValue: (day) => fastingValue(selected, day),
                         isRecorded: (day) => isFastingRecorded(selected, day),
+                        maxDays: calConfig?.days ?? 30,
+                        dayLabel: (d) => cal?.dayLabel(d) ?? '',
                       ),
 
                       Tw.gap(Tw.s4),
@@ -998,6 +1034,8 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
     required void Function(int day) onSelectDay,
     required double Function(int day) fastingValue,
     required bool Function(int day) isRecorded,
+    String Function(int day)? dayLabel,
+    required int maxDays,
   }) {
     return LayoutBuilder(
       builder: (context, c) {
@@ -1013,7 +1051,7 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: 30,
+          itemCount: maxDays,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: cross,
             mainAxisSpacing: 10,
@@ -1035,8 +1073,10 @@ class _FastingTrackerPageState extends ConsumerState<FastingTrackerPage> {
                 ? Icons.brightness_5_rounded
                 : Icons.cancel_rounded));
 
+            final label = (dayLabel == null) ? 'Hari $day' : 'Hari $day • ${dayLabel(day)}';
+
             final chip = BreezeToggleChip(
-              label: 'Hari $day',
+              label: label,
               checked: recorded,
               icon: icon,
               onTap: () => onSelectDay(day),

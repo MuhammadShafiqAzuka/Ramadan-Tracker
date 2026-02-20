@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../ramadan_hero/providers/theme_provider.dart';
+import '../../providers/theme_provider.dart';
 
 class ThemeToggle extends ConsumerWidget {
   const ThemeToggle({super.key});

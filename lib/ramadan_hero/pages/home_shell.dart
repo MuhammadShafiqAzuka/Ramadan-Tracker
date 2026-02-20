@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import '../../common/utils/date_key.dart';
-import '../../common/utils/mathx.dart';
-import '../../common/utils/tw.dart';
-import '../../common/widgets/breeze_ui.dart';
-import '../../common/widgets/theme_toggle.dart';
+import '../common/utils/date_key.dart';
+import '../common/utils/mathx.dart';
+import '../common/utils/tw.dart';
+import '../common/widgets/breeze_ui.dart';
+import '../common/widgets/theme_toggle.dart';
 import '../models/plan_type.dart';
 import '../providers/fasting_provider.dart';
 import '../providers/home_reminder.dart';
